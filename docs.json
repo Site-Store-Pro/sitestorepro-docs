@@ -1,22 +1,17 @@
 {
-   "$schema": "https://mintlify.com/docs.json",
+  "$schema": "https://mintlify.com",
   "theme": "palm",
-  "name": "Site Store Pro Docs",
+  "name": "Site Store Pro Documentation",
   "colors": {
-    "primary": "#0052CC",
-    "light": "#4C9AFF",
-    "dark": "#0747A6"
+    "primary": "#0055a5",
+    "light": "#3399ff",
+    "dark": "#003366"
   },
   "logo": {
     "light": "/logo/sitestorepro-logo.webp",
     "dark": "/logo/sitestorepro-logo.webp"
   },
   "favicon": "/favicon.svg",
-  "colors": {
-    "primary": "#ef7025",
-    "light": "#eec9bc",
-    "dark": "#4fa1ab"
-  },
   "navbar": {
     "primary": {
       "type": "button",
