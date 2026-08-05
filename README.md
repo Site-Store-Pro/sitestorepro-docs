@@ -29,25 +29,9 @@ The docs are organized into two tabs:
 - **Routes Reference** — Storefront routes, admin routes, webhook endpoints
 - **Shortcode Reference** — Shortcode reference, shortcode pipelines
 
-## Local development
-
-This documentation is built with [Mintlify](https://mintlify.com). Install the CLI to preview changes locally:
-
-```bash
-npm i -g mint
-```
-
-Run the dev server from the repo root (where `docs.json` lives):
-
-```bash
-mint dev
-```
-
-Preview at `http://localhost:3000`.
-
 ## Publishing
 
-Changes pushed to the default branch of this repo are deployed automatically to [docs.sitestorepro.com](https://docs.sitestorepro.com) via the Mintlify GitHub app.
+Changes pushed to the default branch of this repo are deployed automatically to [docs.sitestorepro.com](https://docs.sitestorepro.com).
 
 ## Repository layout
 
@@ -70,20 +54,6 @@ Changes pushed to the default branch of this repo are deployed automatically to 
 └── favicon.svg
 ```
 
-## Contributing
-
-1. Create a branch from `main`.
-2. Edit or add `.mdx` files. Update `docs.json` if you add pages or change navigation.
-3. Preview with `mint dev`.
-4. Open a pull request.
-
-## Troubleshooting
-
-- Dev server not running: run `mint update` to get the latest CLI.
-- Page loads as 404: confirm you're running `mint dev` from the folder containing `docs.json`.
-
 ## Resources
 
 - [Site Store Pro website](https://sitestorepro.com)
-- [Mintlify documentation](https://mintlify.com/docs)
-- [Mintlify components](https://mintlify.com/docs/components)
