@@ -1,7 +1,12 @@
 {
-  "$schema": "https://mintlify.com/docs.json",
-  "name": "Site Store Pro Documentation",
-  "theme": "maple",
+   "$schema": "https://mintlify.com/docs.json",
+  "theme": "willow",
+  "name": "Site Store Pro Docs",
+  "colors": {
+    "primary": "#0052CC",
+    "light": "#4C9AFF",
+    "dark": "#0747A6"
+  },
   "logo": {
     "light": "/logo/sitestorepro-logo.webp",
     "dark": "/logo/sitestorepro-logo.webp"
