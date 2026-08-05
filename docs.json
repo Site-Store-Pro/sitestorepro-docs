@@ -3,8 +3,8 @@
   "name": "Site Store Pro Documentation",
   "theme": "maple",
   "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
+    "light": "/logo/sitestorepro-logo.webp",
+    "dark": "/logo/sitestorepro-logo.webp"
   },
   "favicon": "/favicon.svg",
   "colors": {
