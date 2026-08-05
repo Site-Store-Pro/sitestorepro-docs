@@ -15,8 +15,8 @@
   "navbar": {
     "primary": {
       "type": "button",
-      "label": "Admin Login",
-      "href": "/admin"
+      "label": "Go to Site",
+      "href": "https://sitestorepro.com"
     }
   },
   "navigation": {
