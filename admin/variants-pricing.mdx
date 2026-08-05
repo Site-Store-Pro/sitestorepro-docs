@@ -1,0 +1,223 @@
+---
+title: "Product Variants, Pricing, and Subscription Configuration"
+sidebarTitle: "Variants & Pricing"
+description: "Manage product variants in Site Store Pro — pricing tiers, tax control, Stripe and Paddle IDs, download limits, gift wrapping fees, and event session details."
+---
+
+The **Prices & Variants** tab on the product edit page is where you define every purchasable option for a product — from size and color attributes to subscription billing IDs, gift wrapping fees, and event session details. Each variant carries its own pricing, inventory, tax settings, and optional payment processor IDs for Stripe and Paddle subscriptions.
+
+## Variant Management
+
+The **Prices & Variants** section lives on the product edit page. Each product can have one or more variants representing different sizes, colors, editions, or event sessions.
+
+### Inline Variant Attributes Builder
+
+<Steps>
+  <Step title="Add Attribute Key–Value Pairs">
+    Use the **key-value builder** to define attributes for this variant. For example:
+
+    - `Color` → `Blue`
+    - `Size` → `XL`
+  </Step>
+  <Step title="Auto-Compiled JSON">
+    As you add pairs, the builder **auto-compiles** the entries into a JSON structure in the background.
+  </Step>
+  <Step title="Raw JSON Mode">
+    Advanced users can switch to the **raw JSON textarea** to paste or edit the compiled JSON directly.
+  </Step>
+</Steps>
+
+### Duplicate a Variant
+
+The **Duplicate Variant** action clones all of the following from the source variant into a new record:
+
+<CardGroup cols={2}>
+  <Card title="Attributes & Prices" icon="copy">
+    All pricing fields and attribute key-value pairs
+  </Card>
+
+  <Card title="Custom S3 Credentials" icon="lock">
+    Per-variant S3 bucket credentials if configured
+  </Card>
+
+  <Card title="Inventory Records" icon="warehouse">
+    Stock levels, warehouse levels, reserved stock, and location assignments
+  </Card>
+
+  <Card title="Processor Price IDs" icon="credit-card">
+    All Paddle and Stripe subscription price IDs
+  </Card>
+
+  <Card title="Image Sets" icon="images">
+    Full image gallery (thumbnail, main, zoom paths)
+  </Card>
+</CardGroup>
+
+The duplicate is assigned a **guaranteed unique SKU** automatically — no manual entry needed.
+
+### UI Behavior
+
+- **Auto-Close Variant Modal:** after creating or editing a variant the overlay closes automatically, returning you to the variant list.
+- **Edit & Inventory Scroll Anchor:** clicking the **"Edit & Inventory"** button on any variant row scrolls the page directly to `#section-variants`.
+
+---
+
+## Pricing Fields
+
+| Field | Description |
+| --- | --- |
+| `public_price` | Standard retail price shown to all customers |
+| `wholesale_price` | Discounted price for wholesale customers (`role_id = 2`) |
+| `sale_price` | Sale / promotional price — the original price renders with a strikethrough on the storefront |
+| `variant_fee` | Additional selection fee added to the unit price when this variant is chosen (e.g. `+$5.00` for size XXL) |
+| `wholesale_variant_fee` | Variant fee charged to wholesale-tier customers |
+
+<Tip>
+  Leave `sale_price` blank to hide the strikethrough on the storefront. A value of `0` is treated as a valid sale price (free), not as "no sale."
+</Tip>
+
+---
+
+## Tax Control (`charge_tax`)
+
+Tax is configurable at the **individual variant level**.
+
+<Tabs>
+  <Tab title="Toggle Behavior">
+    | State | Label | Badge in Variant List |
+    | --- | --- | --- |
+    | ON (default) | Sales Tax / VAT — **Taxable** | 🟢 Green dot — **Taxable** |
+    | OFF | Sales Tax / VAT — **Exempt** | ⚫ Grey dot — **Exempt** |
+
+    The toggle appears as a **green/grey pill switch** inside both the variant create and edit forms.
+  </Tab>
+  <Tab title="Tax Calculation Logic">
+    When `charge_tax` is toggled **OFF** for a variant, that variant's line-item price is **fully excluded from tax calculations**.
+
+    The **OR Rule** that governs taxability at the line-item level:
+
+    ```text
+    item_taxable = 1
+      IF (variant.charge_tax = 1)
+      OR (any product_field.charge_tax = 1 for this product)
+    ```
+
+    This means if any Product Customization Field on the same product has `charge_tax = 1`, the entire line item remains taxable even if the variant itself is set to Exempt.
+  </Tab>
+</Tabs>
+
+---
+
+## Payment Processor IDs (Subscription Billing)
+
+The **Payment Processor IDs** panel is collapsible inside the variant create/edit form. A **"Configured"** badge appears on the collapsed header whenever any field in this section has a value.
+
+### Paddle
+
+| Field | Description | Example Value |
+| --- | --- | --- |
+| `paddle_sandbox_price_id` | Paddle Price ID for sandbox / test mode | `pri_sandbox_xxxxxxxxx` |
+| `paddle_live_price_id` | Paddle Price ID for live / production mode | `pri_xxxxxxxxx` |
+
+### Stripe
+
+| Field | Description | Example Value |
+| --- | --- | --- |
+| `stripe_sandbox_price_id` | Stripe **Test** Price ID | `price_test_xxxxxxxxx` |
+| `stripe_live_price_id` | Stripe **Live** Price ID | `price_xxxxxxxxx` |
+| `create_new_stripe_product` | Toggle — when **ON**, a new Stripe Product and recurring Price are created automatically at checkout | — |
+| `stripe_billing_interval` | Billing frequency | `month`, `year`, `week` |
+| `stripe_trial_enabled` | Toggle — enables a free trial period for this subscription | — |
+| `stripe_trial_days` | Number of free trial days (only active when `stripe_trial_enabled = 1`) | `14` |
+
+<Note>
+  `create_new_stripe_product` is useful for products that don't yet have a corresponding Stripe catalog entry. Leave it OFF if you are mapping to an existing Stripe Price object.
+</Note>
+
+---
+
+## Download Settings (Variant Level)
+
+For digital / downloadable products, each variant carries its own download restrictions:
+
+| Field | Default | Description |
+| --- | --- | --- |
+| Download Expiration Date | 1 year from today | Date after which download links expire and can no longer be accessed |
+| Max Downloads | 100 | Maximum number of download attempts permitted per order |
+
+<Warning>
+  Once a download link expires or the max-download count is reached, the customer will see an error on the download page. Adjust these defaults before publishing high-volume digital products.
+</Warning>
+
+---
+
+## Gift Wrapping / Personalization (Variant Level)
+
+| Field | Description |
+| --- | --- |
+| Enable Personalization | Toggle to activate personalization for this specific variant |
+| Personalization Label | Customer-facing label displayed above the text input (e.g. `"Add Gift Message"`, `"Engraving Text"`) |
+| Personalization Fee | Optional fee added to the unit price for this service (`+$0` for free) |
+| Wholesale Personalization Fee | Separate personalization fee applied to wholesale accounts |
+| Placeholder / Instructions | Helper text shown inside the customer's text input field |
+
+---
+
+## Event Details (Variant Level)
+
+Toggle **"Mark as Event / Calendar Item"** (rendered as a violet pill-switch) to enable event mode for this variant.
+
+<Note>
+  **Modeling pattern:** the parent **Product** represents the _event series_ (e.g. "Summer Pottery Workshop"), and each **Variant** represents an individual _session_ or _time slot_. Customers purchase a specific variant to register for that session.
+</Note>
+
+| Field | Required | Description |
+| --- | --- | --- |
+| Event Label | ✅ Yes | Primary text shown on the calendar tile |
+| Alternate / Tooltip Label | No | Secondary label used for tooltips or compact views |
+| Event Start Date & Time | ✅ Yes | `datetime-local` picker — required for calendar rendering |
+| Event End Date & Time | No | Optional session end time |
+| Calendar Colour | No | Hex color code for the badge/tile (default: `#4f46e5`) |
+| Sort Order | No | Float weight for calendar display ordering |
+| Show Date on Front-End | No | Checkbox — controls whether the date is visible on the public calendar |
+| Location / Venue / URL | No | Physical address or online meeting link (e.g. Zoom URL) |
+| Event Description | No | Rich text area for detailed session notes, agenda, or instructions |
+
+---
+
+## Product Customization Fields Panel
+
+The **Product Customization Fields** panel is a **dynamic form builder** for adding custom checkout input fields to a product.
+
+### Supported Field Types
+
+- Free-text input
+- Single-select dropdown
+- Radio group
+- Checkbox (boolean)
+- Multi-select
+
+### Per-Field Pricing & Tax
+
+Each custom field supports:
+
+| Setting | Description |
+| --- | --- |
+| Retail price surcharge | Extra amount added to the unit price for retail customers |
+| Wholesale price surcharge | Extra amount added for wholesale-tier customers |
+| Tax Price Modifier (`charge_tax`) | Toggle (default **ON**) — controls whether this field's surcharge is included in tax calculations |
+
+---
+
+## Advanced Settings Panel
+
+| Setting | Description |
+| --- | --- |
+| **Max 1 per order** (`max_qty`) | Forces the quantity to 1 for this product; disables all quantity selectors in cart and on the product page |
+| **Redirect to Checkout** (`checkout_redirect`) | Bypasses the cart on add-to-cart and sends the customer directly to checkout |
+| **Standalone Purchase** (`standalone_purchase`) | Blocks adding any other items to the cart while this product is present |
+| **Use Dependent Selectors** (`dependent_variants`) | Enables a progressive Color → Size drill-down — the second selector only appears after the first is chosen |
+| **Hide Inventory Levels** (`hide_inventory_levels`) | Hides the "X in stock" indicator on the product page regardless of actual stock |
+| **★ Featured Item** | Marks the product as featured — required for it to appear in the `[plugin:featured-items]` shortcode output |
+| **Product Page Layout Option** | Select from 5 available storefront layout templates (see Storefront Layout docs) |
+| **Post-Order Completion Redirect** | Custom URL or `[page:ID]` shortcode — customer is redirected here after a successful purchase |

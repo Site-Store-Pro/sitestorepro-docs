@@ -1,0 +1,110 @@
+---
+title: "Site Store Pro Admin Panel Routes: Complete Route Reference"
+sidebarTitle: "Admin Routes"
+description: "Complete reference of all Site Store Pro admin routes — e-commerce, CMS, helpdesk, user management, plugins, and settings — with access role requirements."
+---
+
+All admin routes are protected by authentication and require a staff role (roles 3, 4, or 5). Customers attempting to access `/admin/*` routes are redirected to the customer login page.
+
+---
+
+## Admin Dashboard
+
+| Route | Description |
+| --- | --- |
+| `GET /admin/dashboard` | Main admin home — KPI cards, revenue trends, conversion funnel, and top spender rankings |
+
+---
+
+## E-Commerce Admin
+
+| Route | Description |
+| --- | --- |
+| `GET /admin/pending-orders` | Pending orders list — non-completed orders, paginated 25 per page |
+| `GET /admin/ecommerce/products` | Product list — 25 per page |
+| `GET /admin/ecommerce/products/{id}/edit` | Product editor — pricing, variants, images, descriptions, SEO |
+| `GET /admin/ecommerce/categories` | Category tree — 25 per page |
+| `GET /admin/ecommerce/brands` | Brand manager — 25 per page |
+| `GET /admin/ecommerce/orders` | Order list — 25 per page |
+| `GET /admin/ecommerce/orders/{id}` | Order invoice and refund portal |
+| `GET /admin/ecommerce/inventory` | Inventory editor — 25 per page |
+| `GET /admin/ecommerce/shipping` | Shipping & Taxes Console — carrier rates, merchant location, currency, VAT |
+| `GET /admin/ecommerce/discounts` | Discounts CRUD list — 25 per page |
+| `GET /admin/ecommerce/discounts/create` | Create new discount code or rule |
+| `GET /admin/ecommerce/discounts/{id}/edit` | Edit existing discount |
+| `GET /admin/ecommerce/discounts/config` | Storewide discount configuration settings |
+| `GET /admin/ecommerce/reviews` | Global product reviews moderation queue |
+| `GET /admin/ecommerce/import` | Bulk product import |
+| `GET /admin/ecommerce/checkout/processors` | Payment processors configuration and checkout custom fields |
+
+---
+
+## CMS Admin
+
+| Route | Description |
+| --- | --- |
+| `GET /admin/cms-pages` | CMS page catalog |
+| `GET /admin/cms-categories` | CMS page category manager |
+| `GET /admin/cms-tags` | CMS page tag manager |
+| `GET /admin/cms-downloads` | Downloads manager (embedded) |
+| `GET /admin/cms-embeds` | Code and video embed manager |
+| `GET /admin/nav-builder` | Top Navigation Menu Builder |
+| `GET /admin/slideshows` | CMS Slideshow Builder |
+| `GET /admin/modals` | CMS Modals Builder |
+| `GET /admin/testimonials` | Testimonials Manager |
+| `GET /admin/faqs` | FAQs Manager |
+| `GET /admin/cms-forms` | Dynamic Forms Manager (Builder) |
+| `GET /admin/cms-list-menus` | (Re-usable) List Menus Builder |
+| `GET /admin/cms-header-footer` | Header & Footer Builder |
+| `GET /admin/admin/site-labels` | Site-wide Labels Manager |
+| `GET /admin/languages` | Languages Manager |
+
+<Tip>
+  The `POST /admin/cms-pages/upload-image` endpoint is called automatically by TinyMCE when you drag-and-drop or paste an image into the page editor. 
+</Tip>
+
+---
+
+## Support & Helpdesk Admin
+
+| Route | Description |
+| --- | --- |
+| `GET /admin/tickets` | Ticket queue — all tickets, searchable, paginated 25 per page |
+| `GET /admin/assigned-tickets` | Agent queue — tickets assigned to the current authenticated agent only |
+| `GET /admin/kb` | Knowledge base article manager |
+| `GET /admin/kb/categories` | Knowledge base category editor |
+| `GET /admin/email-templates` | Email templates workspace — edit all transactional email templates |
+
+---
+
+## User Management
+
+| Route | Description |
+| --- | --- |
+| `GET /admin/users` | User list — all registered users, paginated 25 per page |
+| `GET /admin/users/{user}` | Customer profile view — order history, tickets, account details |
+| `GET /admin/users/{user}/edit` | Role and profile editor — change user role, update profile fields |
+
+### User Roles Reference
+
+| Role ID | Role |
+| --- | --- |
+| 1 | Customer (standard) |
+| 2 | Wholesale customer |
+| 3 | Support agent |
+| 4 | Staff / editor |
+| 5 | Administrator |
+
+---
+
+## Plugins & Settings
+
+| Route | Description |
+| --- | --- |
+| `GET /admin/settings` | Global settings — appearance, shop display, review system, timezone, branding |
+| `GET /admin/plugins` | Plugin manager — install, activate, deactivate, and configure plugins |
+| `GET /admin/plugins/list-display` | JSON endpoint — returns a list of all currently active display plugins |
+
+<Note>
+  `GET /admin/plugins/list-display` is used internally by the admin UI to populate the plugin shortcode picker. It returns a JSON array of active plugin slugs and display names.
+</Note>

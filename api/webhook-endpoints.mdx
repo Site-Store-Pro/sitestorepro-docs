@@ -1,0 +1,166 @@
+---
+title: "Webhook Endpoints: Inventory Sync and Inbound Email"
+sidebarTitle: "Webhooks"
+description: "Site Store Pro webhook reference for inventory sync, inbound email, Stripe, and Paddle. All routes are CSRF-exempt. Covers auth, payloads, and provider config."
+---
+
+Site Store Pro exposes webhook endpoints for external integrations. All webhook routes are **CSRF-exempt** — they do not require a CSRF token and can be called directly from external services.
+
+---
+
+## Overview
+
+| Endpoint | Purpose |
+| --- | --- |
+| `POST /webhooks/inventory-update` | Automated inventory sync from external WMS or ERP |
+| `POST /webhooks/inbound-email` | Inbound email-to-ticket ingestion |
+| `POST /webhooks/stripe` | Stripe payment event processing |
+| `POST /webhooks/paddle` | Paddle payment event processing |
+
+---
+
+## Inventory Update Webhook
+
+**Endpoint:** `POST /webhooks/inventory-update`
+
+Allows external warehouse management systems (WMS), ERP platforms, or custom scripts to push inventory level updates to Site Store Pro without requiring an admin login.
+
+### Authentication
+
+The webhook verifies the request using a shared secret. Include your secret using **any one** of the following methods:
+
+<CodeGroup>
+
+```bash Custom Header
+curl -X POST https://yourdomain.com/webhooks/inventory-update \
+  -H "X-Inventory-Webhook-Token: your-secret-here" \
+  -H "Content-Type: application/json" \
+  -d '{"sku": "SKU-AAA-123", "stock_level": 150}'
+```
+
+```bash Bearer Token
+curl -X POST https://yourdomain.com/webhooks/inventory-update \
+  -H "Authorization: Bearer your-secret-here" \
+  -H "Content-Type: application/json" \
+  -d '{"sku": "SKU-AAA-123", "stock_level": 150}'
+```
+
+```bash Query Parameter
+curl -X POST "https://yourdomain.com/webhooks/inventory-update?api_token=your-secret-here" \
+  -H "Content-Type: application/json" \
+  -d '{"sku": "SKU-AAA-123", "stock_level": 150}'
+```
+
+</CodeGroup>
+
+### Setting Your Secret
+
+Add your chosen secret to `.env`:
+
+```ini
+INVENTORY_WEBHOOK_SECRET=your-secret-here
+```
+
+<Warning>
+  Requests with a missing or invalid secret are rejected with a `401 Unauthorized` response. Set a long, randomly generated string as your secret.
+</Warning>
+
+### Request Payload
+
+```json
+{
+  "sku": "SKU-AAA-123",
+  "stock_level": 150,
+  "warehouse_level": 80,
+  "use_warehouse_stock": true,
+  "location_id": 2
+}
+```
+
+| Field | Type | Required | Description |
+| --- | --- | --- | --- |
+| `sku` | string | **Yes** | The product variant SKU to update |
+| `stock_level` | integer | No | New total stock level |
+| `warehouse_level` | integer | No | Stock level at the specified warehouse location |
+| `use_warehouse_stock` | boolean | No | Whether to use `warehouse_level` as the active stock source |
+| `location_id` | integer | No | Warehouse/location ID (if using multi-location inventory) |
+
+<Info>
+  All fields except `sku` are optional. Any field that is omitted is left unchanged — only explicitly provided fields are updated.
+</Info>
+
+### Response
+
+A successful update returns a `200 OK` response with a JSON body containing the updated inventory record and the new calculated total stock.
+
+```json
+{
+  "success": true,
+  "sku": "SKU-AAA-123",
+  "stock_level": 150,
+  "warehouse_level": 80,
+  "calculated_total": 150
+}
+```
+
+---
+
+## Inbound Email Webhook
+
+**Endpoint:** `POST /webhooks/inbound-email`
+
+Enables customers and staff to reply to support tickets by simply replying to a notification email — without logging into the dashboard.
+
+### How It Works
+
+Every ticket notification email is sent with a unique reply-to address:
+
+```text
+reply+{token}@yourdomain.com
+```
+
+When a recipient replies, the email provider routes the message to this webhook. Site Store Pro then:
+
+1. Extracts the `{token}` from the recipient address
+2. Verifies the token against the `tickets` table
+3. Appends the email body as a new reply on the matched ticket thread
+
+### Supported Email Providers
+
+<CardGroup cols={3}>
+  <Card title="Cloudflare Email Workers" icon="cloud">
+    Configure Cloudflare Email Routing rules to forward `reply+*@yourdomain.com` addresses to your webhook endpoint via an Email Worker.
+  </Card>
+
+  <Card title="Mailgun" icon="envelope">
+    Set up a Mailgun inbound routing rule to `POST` the parsed email payload to `https://yourdomain.com/webhooks/inbound-email`.
+  </Card>
+
+  <Card title="Postmark" icon="paper-plane">
+    Use Postmark's inbound email processing to forward structured JSON email payloads to your webhook endpoint.
+  </Card>
+</CardGroup>
+
+<Tip>
+  Add a DNS catch-all or wildcard MX record for `reply+*@yourdomain.com` so all tokenized reply addresses are routed to your configured email provider.
+</Tip>
+
+---
+
+## Stripe Webhook
+
+**Endpoint:** `POST /webhooks/stripe`
+
+Handles Stripe payment events including successful charges, failed payments, refunds, and subscription updates.
+
+See the [Stripe payment processor documentation](/payments/stripe) for webhook registration instructions and a full list of handled events.
+
+---
+
+## Paddle Webhook
+
+**Endpoint:** `POST /webhooks/paddle`
+
+Handles Paddle payment events for order fulfillment and subscription management.
+
+See the [Paddle payment processor documentation](/payments/paddle) for webhook registration instructions and event handling details.

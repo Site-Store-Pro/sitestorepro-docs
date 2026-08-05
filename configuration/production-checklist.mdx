@@ -1,0 +1,146 @@
+---
+title: "Site Store Pro Production Deployment Checklist and Commands"
+sidebarTitle: "Production Checklist"
+description: "Site Store Pro production deployment checklist — env variables, database, Stripe and Paddle, shipping plugins, webhook registration, and asset compilation."
+---
+
+Use this checklist to ensure your Site Store Pro installation is fully configured for a production deployment. Work through each section in order before accepting live orders.
+
+---
+
+## Core Production Checklist
+
+<Steps>
+  <Step title="Environment Configuration">
+    Set the following in your `.env` file:
+
+    - [ ] `APP_ENV=production`
+    - [ ] `APP_DEBUG=false`
+    - [ ] Configure database: `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`
+    - [ ] Configure mail server: `MAIL_MAILER=smtp` plus SMTP host, port, username, and password
+    - [ ] Add reCAPTCHA keys: `RECAPTCHA_SITE_KEY` and `RECAPTCHA_SECRET_KEY`
+    - [ ] Add OpenAI key: `OPENAI_API_KEY` _(required only if using AI Article Writer or auto-translation)_
+
+    - [ ] Configure AWS S3 credentials (and Cloudfront CDN URL) if using S3 file storage
+  </Step>
+  <Step title="Database & Storage">
+    - [ ] Run `php artisan migrate` to apply all database migrations
+    - [ ] Run `php artisan storage:link` — **required** for inline CMS image uploads to serve correctly
+  </Step>
+  <Step title="Asset Compilation">
+    - [ ] Run `npm run build` to compile and minify all Vite/Tailwind frontend assets
+  </Step>
+</Steps>
+
+<Warning>
+  Never deploy with `APP_DEBUG=true` in production. Debug mode exposes stack traces, environment variables, and internal application details to end users.
+</Warning>
+
+---
+
+## Payment Processor Checklist
+
+### If Using Stripe
+
+<Steps>
+  <Step title="Install the Stripe SDK">
+    ```bash
+    composer require stripe/stripe-php
+    ```
+  </Step>
+  <Step title="Configure Environment">
+    Add live credentials to `.env`:
+
+    ```ini
+    STRIPE_PUBLISHABLE_KEY=pk_live_...
+    STRIPE_SECRET_KEY=sk_live_...
+    STRIPE_WEBHOOK_SECRET=whsec_...
+    ```
+
+    <Warning>
+      Do **not** set `STRIPE_SANDBOX_*` keys in production. Remove or leave them unset to ensure live mode is used.
+    </Warning>
+  </Step>
+  <Step title="Admin Configuration">
+    In **Admin → Checkout → Processors**:
+
+    - [ ] Set Stripe as the **Primary** payment processor
+    - [ ] Toggle **Production** to **ON** for live mode
+  </Step>
+  <Step title="Register Webhook">
+    - [ ] In your Stripe Dashboard, register the webhook endpoint:
+          ```text
+          https://yourdomain.com/webhooks/stripe
+          ```
+    - [ ] Copy the webhook signing secret into `.env` as `STRIPE_WEBHOOK_SECRET`
+  </Step>
+  <Step title="Test Before Go-Live">
+    - [ ] Test an end-to-end checkout with a [Stripe test card](https://stripe.com/docs/testing#cards) before going live
+    - [ ] Verify the Production toggle is ON — not sandbox mode
+  </Step>
+</Steps>
+
+---
+
+### If Using Paddle
+
+<Steps>
+  <Step title="Install the Paddle SDK">
+    ```bash
+    composer require paddlehq/paddle-php-sdk
+    ```
+  </Step>
+  <Step title="Configure Environment">
+    Add live credentials to `.env`:
+
+    ```ini
+    PADDLE_API_KEY=...
+    PADDLE_CLIENT_TOKEN=...
+    PADDLE_WEBHOOK_SECRET=...
+    ```
+  </Step>
+  <Step title="Admin Configuration">
+    In **Admin → Checkout → Processors**:
+
+    - [ ] Set Paddle as the **Primary** payment processor
+    - [ ] Toggle **Production** to **ON** for live mode
+  </Step>
+  <Step title="Register Webhook">
+    - [ ] In your Paddle Dashboard, register the webhook endpoint:
+          ```text
+          https://yourdomain.com/webhooks/paddle
+          ```
+    - [ ] Copy the webhook signing secret into `.env` as `PADDLE_WEBHOOK_SECRET`
+  </Step>
+  <Step title="Test Before Go-Live">
+    - [ ] Complete a test transaction using the Paddle sandbox account before switching to production
+  </Step>
+</Steps>
+
+---
+
+### If Using Shipping Carrier Plugins (FedEx / UPS / USPS)
+
+- [ ] Run `php artisan db:seed --class=PluginSeeder` to register all built-in plugins
+- [ ] Navigate to **Admin → Plugins → \[Carrier\] → Settings** and enter your carrier API credentials
+- [ ] Navigate to **Admin → Plugins → \[Carrier\] → Activation** and activate each carrier plugin
+- [ ] Test live shipping rate calculation at `/checkout/review` with a shippable product in the cart
+
+---
+
+## Artisan Commands Reference
+
+| Command | Description |
+| --- | --- |
+| `php artisan migrate:fresh --seed` | Full fresh install with all seeders |
+| `php artisan db:seed --class=DevEcommerceSeeder` | Load dev demo products, brands, and categories |
+| `php artisan db:seed --class=DemoStoreSeeder` | Load polished demo store content |
+| `php artisan db:seed --class=PluginSeeder` | Register all built-in plugins |
+| `php artisan search:rebuild-index` | Rebuild search index for all CMS pages and products |
+| `php artisan search:rebuild-index --force` | Force full rebuild even if indexes are locked |
+| `php artisan storage:link` | Create the public storage symlink |
+| `php artisan optimize:clear` | Clear all application caches |
+
+<Note>
+  `DevEcommerceSeeder` and `DemoStoreSeeder` are for development and demo environments only. Running them in production will populate your live store with fake product and content data.
+</Note>

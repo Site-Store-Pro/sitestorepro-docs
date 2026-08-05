@@ -1,0 +1,112 @@
+---
+title: "Code & Video Embed Manager for Site Store Pro CMS Pages"
+sidebarTitle: "Code Embeds"
+description: "Store YouTube, Vimeo, and custom HTML in the Site Store Pro embed library. Insert into any CMS page using [code-embed:N] — bypasses TinyMCE iframe stripping."
+---
+
+## Why Use the Embed Manager?
+
+TinyMCE routinely strips `<iframe>` tags and custom `<script>` blocks from content on save — this means pasting a YouTube embed or third-party widget directly into the editor will cause it to disappear.
+
+The **Code Embed Manager** solves this by:
+
+- **Storing embed code in the database** instead of in the editor body.
+- **Inserting it only at render time** via shortcode — the editor never sees or processes the raw HTML.
+- **Single-source updates** — edit the embed record once and every page that embeds it reflects the change immediately, without re-editing each page.
+
+---
+
+## Admin Routes
+
+| Action | Path |
+| --- | --- |
+| All Embed Records | `/admin/cms-embeds` |
+| Create New Embed | `/admin/cms-embeds/create` |
+| Edit Embed | `/admin/cms-embeds/{id}/edit` |
+
+The list view includes: inline search, type filter, active filter, shortcode preview badge, and type badge for quick identification.
+
+---
+
+## Embed Types
+
+| Type Value | Label | Use Case |
+| --- | --- | --- |
+| `0` | YouTube | YouTube player embed |
+| `1` | Vimeo | Vimeo player embed |
+| `2` | Other HTML | Any custom HTML, script, or third-party widget |
+
+---
+
+## Shortcode Syntax
+
+```text
+[code-embed:{id}]
+[code-embed:{id} label="Optional Label"]
+```
+
+**Examples:**
+
+```text
+[code-embed:1]
+[code-embed:3 label="Product Demo Video"]
+[code-embed:7]
+```
+
+Place shortcodes anywhere in a CMS page body, sidebar, or product description field.
+
+---
+
+## Rendering Behavior
+
+| Embed Type | Output |
+| --- | --- |
+| **YouTube** (type 0) | Wrapped in a responsive 16:9 aspect-ratio container; responsive CSS is emitted **once per request** regardless of how many YouTube embeds are on the page |
+| **Vimeo** (type 1) | Same responsive 16:9 wrapper as YouTube |
+| **Other HTML** (type 2) | `code_snippet` is output **verbatim** — no wrapping, no modification |
+| **Inactive record** | Outputs `{/*  [embed-inactive: N]  */}` — never breaks the page layout or throws an error |
+
+---
+
+## Step-by-Step: Adding a New Embed
+
+<Steps>
+  <Step title="Open Code Embeds">
+    Go to **Admin → CMS → Code Embeds** (`/admin/cms-embeds`).
+  </Step>
+  <Step title="Create New Embed">
+    Click the **New Embed** button.
+  </Step>
+  <Step title="Enter Internal Name">
+    Give the embed a descriptive internal name (e.g. "Homepage Hero Video", "Support Chat Widget").
+  </Step>
+  <Step title="Select Embed Type">
+    Choose **YouTube**, **Vimeo**, or **Other HTML** from the type dropdown.
+  </Step>
+  <Step title="Paste Embed Code">
+    Paste the full embed code (e.g. YouTube `<iframe>` snippet, Vimeo player code, or custom widget script) into the **Code Snippet** textarea.
+
+    <Note>
+      This textarea is **not** connected to TinyMCE — the raw HTML is stored exactly as entered, including iframes and scripts.
+    </Note>
+  </Step>
+  <Step title="Save">
+    Click **Save Embed**. A shortcode badge is generated and displayed.
+  </Step>
+  <Step title="Copy and Paste Shortcode">
+    Copy the generated shortcode (e.g. `[code-embed:3]`) and paste it into any CMS page body, sidebar, or product description.
+  </Step>
+</Steps>
+
+---
+
+## Common Use Cases
+
+| Scenario | Embed Type |
+| --- | --- |
+| YouTube tutorial video | YouTube (type 0) |
+| Vimeo product showcase | Vimeo (type 1) |
+| Third-party live chat widget | Other HTML (type 2) |
+| Custom HTML block or banner | Other HTML (type 2) |
+| External booking calendar | Other HTML (type 2) |
+| Google Maps embed | Other HTML (type 2) |

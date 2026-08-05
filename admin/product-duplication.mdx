@@ -1,0 +1,133 @@
+---
+title: "Duplicate Products with All Variants, Images, and Settings"
+sidebarTitle: "Duplication"
+description: "Duplicate any product in Site Store Pro to clone its variants, pricing, inventory, images, custom fields, and cross-sells, with unique SKUs and a new SEO slug."
+---
+
+The product duplication tool in Site Store Pro lets you create a full deep-copy of any product in six steps — including all variants, inventory records, image galleries, customization fields, cross-sell links, and event details. Each duplication run is wrapped in an atomic database transaction, so either the entire clone succeeds or nothing is written. Duplicated variants receive auto-generated unique SKUs, and the new product starts in draft state for safe review before publishing.
+
+## How to Duplicate a Product
+
+<Steps>
+  <Step title="Open the Product Catalog">
+    Go to **Admin → Products** at `/admin/ecommerce/products`.
+  </Step>
+  <Step title="Open the Duplicate Modal">
+    Click the **Copy** button on any product row. A **slide-over modal** opens on the right side of the screen.
+  </Step>
+  <Step title="Review the Pre-Filled Title">
+    The new product title is pre-filled as:
+
+    ```text
+    "{Original Title} - Copy {Random4Hex}"
+    ```
+
+    For example: `"Blue Denim Jacket - Copy A3F1"`. This is fully editable before saving.
+  </Step>
+  <Step title="Review the Pre-Filled SEO Slug">
+    The slug is pre-filled as:
+
+    ```text
+    "{original-slug}-copy-{randomHex}"
+    ```
+
+    The slug is **validated for uniqueness** before the form can be submitted — no two products can share the same slug.
+  </Step>
+  <Step title="Toggle Variant & Image Duplication">
+    The **"Duplicate All Variants, Inventory & Images"** toggle is **checked by default**. Leave it enabled to perform a full deep-copy. Uncheck it to create a new product shell with only the base product data.
+  </Step>
+  <Step title="Save">
+    Click **Save**. The duplication runs inside an **atomic database transaction** — if any part of the process fails, the entire operation is rolled back and no partial data is created.
+  </Step>
+</Steps>
+
+---
+
+## What Gets Duplicated
+
+A full duplication copies every piece of data associated with the source product. The table below documents exactly what is cloned:
+
+<Accordion title="Base Product Record">
+  | Field | Duplicated |
+  | --- | --- |
+  | Short description | ✅ |
+  | Long description | ✅ |
+  | Meta tags (SEO title, description, keywords) | ✅ |
+  | Shipping rules | ✅ |
+  | Digital download settings | ✅ |
+  | Max quantities (`max_qty`) | ✅ |
+  | Standalone purchase rules (`standalone_purchase`) | ✅ |
+  | Checkout redirect (`checkout_redirect`) | ✅ |
+  | Page layout type | ✅ |
+  | Review settings (enabled/disabled) | ✅ |
+</Accordion>
+
+<Accordion title="Taxonomy & Relationships">
+  | Data | Duplicated |
+  | --- | --- |
+  | Category assignments | ✅ All associated categories |
+  | Cross-selling links | ✅ All cross-sell recommendations |
+</Accordion>
+
+<Accordion title="Product Customization Fields">
+  All **custom checkout input fields** (text inputs, selects, radio groups, checkboxes, multi-selects) and their associated **selectable choices and price surcharges** are fully cloned onto the new product.
+</Accordion>
+
+<Accordion title="Pricing Variants">
+  New variant records are created with all pricing fields intact:
+
+  - `public_price`, `wholesale_price`, `sale_price`
+  - `variant_fee`, `wholesale_variant_fee`
+  - `charge_tax` settings
+  - Payment processor IDs (Paddle and Stripe)
+  - Download expiration and max-download limits
+  - Personalization / gift wrapping configuration
+
+  Each duplicated variant receives a **guaranteed unique SKU** — for example `SKU-COPY-WXYZ` — generated automatically.
+</Accordion>
+
+<Accordion title="Stock & Inventory">
+  Inventory records are cloned per variant, preserving:
+
+  - `quantity_available` (shelf stock)
+  - `warehouse_stock_level`
+  - `reserved_stock`
+  - `location_id` (warehouse location assignments)
+</Accordion>
+
+<Accordion title="Image Galleries">
+  All image sets are duplicated, preserving:
+
+  - Thumbnail, main image, and zoom image paths
+  - CDN URL references
+  - `image_url_source` flags (direct URL vs. local disk)
+  - `image_alt` text and `zoom_label` captions
+  - Search image flags and active/inactive status
+</Accordion>
+
+<Accordion title="Quantity Discounts & Event Details">
+  | Record Type | Duplicated |
+  | --- | --- |
+  | Quantity discount break tiers (volume price steps) | ✅ |
+  | Event / calendar session details (dates, labels, locations) | ✅ |
+</Accordion>
+
+---
+
+## Unique SKU Generation
+
+Site Store Pro guarantees that every duplicated variant receives a unique SKU automatically. You do **not** need to manually enter or modify SKUs after duplication.
+
+<Tip>
+  After duplication, the new product is created in **draft / inactive** state by default. Review all fields — especially pricing, SEO slug, and inventory — before publishing the duplicated product to the storefront.
+</Tip>
+
+---
+
+## Atomic Transaction Safety
+
+The entire duplication process — base product, variants, inventory, images, categories, custom fields, cross-sells, discounts, and events — runs inside a **single atomic database transaction**.
+
+<Note>
+  If any step in the duplication fails (e.g. a unique constraint violation, a disk write error for images), the transaction is **fully rolled back**. No partial product, orphaned variant, or incomplete image record will be left in the database.
+</Note>

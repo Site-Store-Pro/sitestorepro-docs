@@ -1,0 +1,193 @@
+---
+title: "Bulk Product Import from CSV, TXT, or Excel Spreadsheets"
+sidebarTitle: "Bulk Import"
+description: "Import products, variants, and images from CSV, TXT, or Excel in Site Store Pro. Covers column mapping, category auto-creation, and SKU duplicate handling."
+---
+
+The Bulk Product Import tool lets you load hundreds of products — complete with variants, images, categories, and brands — from a single CSV, TXT, or Excel file. The importer features smart header auto-detection, custom column mapping, live row previews before committing, and a post-import report that details every record created, updated, or skipped. Excel (`.xlsx`/`.xls`) support requires the `phpoffice/phpspreadsheet` package.
+
+## Accessing the Import Tool
+
+Navigate to `GET /admin/ecommerce/import` to open the **Bulk Product Import** tool.
+
+---
+
+## Supported File Formats
+
+<CardGroup cols={3}>
+  <Card title=".csv" icon="file-csv">
+    Standard comma-separated values
+  </Card>
+
+  <Card title=".txt" icon="file-lines">
+    Tab or custom delimiter-separated text files
+  </Card>
+
+  <Card title=".xlsx / .xls" icon="file-excel">
+    Microsoft Excel spreadsheets via `phpoffice/phpspreadsheet`
+  </Card>
+</CardGroup>
+
+### Excel Dependency
+
+Excel file support requires the `phpspreadsheet` package. Install it with:
+
+```bash
+composer require phpoffice/phpspreadsheet
+```
+
+<Note>
+  If this package is not installed, `.xlsx` and `.xls` uploads will fail silently. The CSV and TXT importers have no additional dependencies.
+</Note>
+
+---
+
+## Smart Header Auto-Detection & Custom Field Mapping
+
+The importer automatically reads the first row of your file to detect column headers and maps them to Site Store Pro fields. If your headers don't exactly match, use the **custom dropdown mappings** to assign each column manually.
+
+### Supported Column Mappings
+
+<Accordion title="Product Fields">
+  | Header | Field |
+  | --- | --- |
+  | `title` | Product title |
+  | `short_description` | Short description (supports Blade/shortcode directives) |
+  | `long_description` | Long description (HTML accepted) |
+  | `public_price` | Standard retail price |
+  | `wholesale_price` | Wholesale customer price |
+</Accordion>
+
+<Accordion title="Taxonomy Fields">
+  | Header | Accepted Formats |
+  | --- | --- |
+  | `categories` | Single name: `"Electronics"` |
+  |  | Hierarchy string: `"Apparel > Outerwear > Jackets"` |
+  |  | Comma-separated: `"Electronics, Audio"` |
+  |  | JSON array: `["Electronics", "Gadgets"]` |
+  | `brand` | Brand name or brand slug |
+</Accordion>
+
+<Accordion title="Image Fields">
+  | Header | Description |
+  | --- | --- |
+  | `thumbnail_url` | URL or path for the thumbnail image |
+  | `main_image_url` | URL or path for the primary product image |
+  | `zoom_images_url` | URL or path for the high-resolution zoom image |
+  | `image_url_source` | `1` = treat as direct external URL; `0` = download and store locally |
+</Accordion>
+
+<Accordion title="Variant Fields">
+  | Header | Description |
+  | --- | --- |
+  | `variant_sku` | Unique SKU for this variant row |
+  | `variant_name` | Display name for the variant |
+  | `variant_attributes` | Attribute string e.g. `Size:M, Color:Black` |
+  | `variant_price` | Retail price override for this variant |
+  | `variant_wholesale_price` | Wholesale price for this variant |
+  | `inventory` | Initial stock quantity |
+</Accordion>
+
+---
+
+## Multi-Variant Grouping & Duplicate Handling
+
+<Steps>
+  <Step title="Group Rows by Product">
+    Multiple rows that share the **same product title** or **SKU base** are automatically merged into a **single parent `Product`** record with multiple `ProductVariant` children.
+  </Step>
+  <Step title="Single-Variant Fallback">
+    If a row has **no variant options** defined, a **default single variant** is created automatically so every product always has at least one purchasable variant.
+  </Step>
+  <Step title="Exact SKU Duplicate Matching">
+    If a row's `variant_sku` **exactly matches** an existing variant in the database → the importer **updates** that variant instead of creating a duplicate. New rows with unmatched SKUs are inserted as new variants.
+  </Step>
+</Steps>
+
+<Tip>
+  Running the importer twice with the same file is safe — matched SKUs will be updated rather than duplicated.
+</Tip>
+
+---
+
+## Taxonomy Auto-Creation
+
+You don't need to pre-create categories or brands before importing.
+
+<Tabs>
+  <Tab title="Categories">
+    - Hierarchy strings (e.g. `Apparel > Outerwear > Jackets`) are **parsed recursively**
+    - Any missing parent or child category is **created automatically** in the correct nesting order
+    - The product is linked to **all resolved category IDs** in the hierarchy
+  </Tab>
+  <Tab title="Brands">
+    - If the brand name or slug in the import file does not match any existing brand → a **new brand record is created automatically**
+    - The new brand is immediately available in the Brands admin panel
+  </Tab>
+</Tabs>
+
+---
+
+## Image URL Handling
+
+<Tabs>
+  <Tab title="Direct External URL Mode (image_url_source = 1)">
+    The remote URL is **stored directly** on the `ProductImage` record as-is. No file is downloaded, and no local disk space is consumed. Use this for images already hosted on a CDN or third-party storage.
+
+    ```text
+    image_url_source = 1
+    → stores remote URL in DB
+    → no local storage used
+    ```
+  </Tab>
+  <Tab title="Local Storage Downloader (image_url_source = 0)">
+    The importer **downloads each image** from the remote URL via HTTP and saves it to:
+
+    ```text
+    storage/cms_product_imports/
+    ```
+
+    The resulting relative file path is stored in the database.
+
+    <Warning>
+      Downloading large numbers of high-resolution images during import can be slow and may time out for very large files. Consider using Direct URL mode for bulk imports exceeding a few hundred images.
+    </Warning>
+  </Tab>
+</Tabs>
+
+---
+
+## Admin Dashboard Features
+
+### Template Downloads
+
+Two sample files are available directly from the import page:
+
+<CardGroup cols={2}>
+  <Card title="Download Sample CSV" icon="file-csv">
+    Pre-formatted CSV template with all supported column headers
+  </Card>
+
+  <Card title="Download Sample Excel" icon="file-excel">
+    Pre-formatted `.xlsx` template with column headers and example rows
+  </Card>
+</CardGroup>
+
+### Live Preview
+
+Before executing the import, a **parsed rows preview table** is rendered on the page showing how your file will be interpreted — column mappings, product groupings, and detected values. Review this carefully before proceeding.
+
+### Post-Import Report
+
+After the import completes, a summary report is displayed:
+
+| Metric | Description |
+| --- | --- |
+| Products created | New `Product` records inserted |
+| Products updated | Existing products updated by title/SKU match |
+| Variants created | New `ProductVariant` records inserted |
+| Variants updated | Existing variants updated by SKU match |
+| Categories auto-created | New category records created during taxonomy parsing |
+| Brands auto-created | New brand records created |
+| Images processed | Total image URLs stored or files downloaded |
+| Row errors | Rows that failed validation with error messages |

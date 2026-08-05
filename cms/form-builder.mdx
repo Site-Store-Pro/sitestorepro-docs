@@ -1,0 +1,229 @@
+---
+title: "CMS Form Builder: Embeddable Forms with Email Notifications"
+sidebarTitle: "Form Builder"
+description: "Create embeddable forms in Site Store Pro with field validation, email notifications, reCAPTCHA v3, mailing list opt-ins, and CSV export of submissions."
+---
+
+The Site Store Pro Form Builder lets you create custom embeddable forms — contact forms, surveys, sign-up sheets — without writing any code. Each form supports flexible field types, server-side validation, reCAPTCHA v3 spam protection, mailing list opt-in, and a submission log with CSV export. Embed any form in a CMS page or product description using the `[cms-form id=N]` shortcode.
+
+## Creating a Form
+
+Navigate to **Admin → CMS → Forms** in the sidebar.
+
+### Form Settings
+
+| Field | Description |
+| --- | --- |
+| **Form Name** | Internal label — not shown publicly |
+| **Slug** | Auto-generated from the form name; used in the submission API route |
+| **Submit Button Label** | Text on the submit button (default: `Submit`) |
+| **Active Toggle** | Inactive forms render as an empty HTML comment |
+
+### After Submission
+
+| Field | Description |
+| --- | --- |
+| **Confirmation Message** | HTML content shown in place of the form immediately after a successful submission |
+| **Redirect URL** | If set, the browser redirects to this URL **2 seconds** after the confirmation message appears |
+
+### Email Notification
+
+| Field | Description |
+| --- | --- |
+| **Send To Email** | Recipient address for new submission notifications |
+| **Email Subject** | Subject line (defaults to `New form submission: {Form Name}`) |
+
+### Custom CSS
+
+Custom styles scoped to `.cms-form-wrap` for this form only.
+
+---
+
+## Field Types
+
+| Type | Renders As |
+| --- | --- |
+| **Text Input** | Single-line `<input type="text">` |
+| **Textarea** | Multi-line `<textarea>` |
+| **Dropdown** | `<select>` with configurable options |
+| **Radio Group** | Single-selection radio buttons |
+| **Checkbox** | Single yes/no checkbox |
+| **Checkbox Group** | Multiple-selection checkbox set |
+
+### Per-Field Options
+
+Every field supports the following configuration:
+
+| Option | Description |
+| --- | --- |
+| **Label** | Required — displayed above the input |
+| **Instructions** | Optional helper text shown below the label |
+| **HTML Above** | TinyMCE HTML block rendered directly above the field |
+| **Required Toggle** | Makes the field mandatory |
+| **Validation Rule** | `Not Empty`, `Valid Email`, or `Numeric Only` |
+| **Custom Error Message** | Overrides the default validation error text |
+
+---
+
+## Embedding a Form
+
+```text
+[cms-form id=5]
+```
+
+<Note>
+  The `[cms-form]` shortcode is resolved before all other shortcode types. This ensures forms render correctly even when nested inside list menus or other shortcode-containing blocks.
+</Note>
+
+Invalid or inactive form IDs render as an empty HTML comment — no error is shown to visitors.
+
+---
+
+## Frontend Behavior
+
+| Behavior | Detail |
+| --- | --- |
+| **Client-side validation** | Alpine.js — instant inline error feedback, no page reload |
+| **Server-side validation** | PHP fallback validation for all rules |
+| **Success state** | Form is replaced with the Confirmation Message |
+| **Redirect** | Browser redirects 2 seconds after confirmation (if Redirect URL is set) |
+| **Submission method** | `fetch()` POST — no full page reload |
+
+---
+
+## Public API Route
+
+```text
+POST /forms/{slug}/submit
+```
+
+The `{slug}` parameter accepts either the form's text slug or its numeric ID.
+
+**Request body:**
+
+```json
+{
+  "values": {
+    "{field_id}": "value",
+    "{field_id}": "value"
+  }
+}
+```
+
+**Responses:**
+
+| Status | Body | Meaning |
+| --- | --- | --- |
+| `200` | `{ "success": true }` | Form submitted successfully |
+| `422` | `{ "errors": { "{field_id}": "message" } }` | Validation failure |
+
+---
+
+## Viewing Submissions
+
+Access submissions in two ways:
+
+- Click the **submissions count badge** on the Forms index page.
+- Open the form editor and click **View Submissions**.
+
+### Submission Record
+
+Each submission displays as a collapsible card containing:
+
+| Data | Detail |
+| --- | --- |
+| Timestamp | Date and time of submission |
+| IP Address | Visitor's IP address |
+| Field Preview | First 3 field values shown in the collapsed header |
+| Full Values | All field responses visible when expanded |
+
+### Actions
+
+| Action | Description |
+| --- | --- |
+| **Delete** | Permanently removes the submission record |
+| **Export CSV** | Downloads all submissions as a CSV file |
+
+### Search
+
+Search submissions by **IP address** or by any **stored JSON field value**.
+
+---
+
+## reCAPTCHA v3
+
+reCAPTCHA v3 is automatically enabled when the following variables are present in `.env`:
+
+```env
+RECAPTCHA_SITE_KEY=your_site_key
+RECAPTCHA_SECRET=your_secret_key
+RECAPTCHA_THRESHOLD=0.5   # optional — default is 0.5
+```
+
+<Info>
+  When `RECAPTCHA_SITE_KEY` and `RECAPTCHA_SECRET` are absent (e.g. local development), `RecaptchaService::verify()` returns `true` automatically. Forms work without any reCAPTCHA configuration in development environments.
+</Info>
+
+---
+
+## Mailing List Auto Opt-in
+
+Configure per-form mailing list subscription in **Admin → Forms → Edit Form → Mailing List Opt-in** card.
+
+### Supported Providers
+
+| Provider | Required Environment Variable(s) |
+| --- | --- |
+| Mailchimp | `MAILCHIMP_API_KEY`, `MAILCHIMP_SERVER_PREFIX` |
+| Constant Contact | `CONSTANT_CONTACT_API_KEY` |
+| Klaviyo | `KLAVIYO_API_KEY` |
+
+### Field Roles
+
+Assign a role to each form field to map it to the subscription payload:
+
+| Role | Purpose |
+| --- | --- |
+| **Subscriber Email** | Maps to the provider's email field |
+| **Subscriber Name** | Maps to the provider's name field |
+| **None** (default) | Field data not passed to mailing list |
+
+<Note>
+  Opt-in failures are caught silently and logged to `storage/logs/laravel.log`. A mailing list error will never interrupt or block form submission.
+</Note>
+
+---
+
+## Pre-seeded Forms
+
+Two forms are included in every Site Store Pro installation:
+
+| Shortcode | Form |
+| --- | --- |
+| `[cms-form id=1]` | Contact Us |
+| `[cms-form id=2]` | Email Subscribe |
+
+---
+
+## Custom CSS Hook Classes
+
+Use these classes to target form elements with custom CSS in the form's **Custom CSS** field or your global stylesheet:
+
+```text
+.cms-form-wrap          — outermost form wrapper
+.cms-embed-form         — inner form element
+.cms-form-field         — individual field wrapper
+.cms-field-html-above   — HTML Above block
+.cms-field-label        — field label
+.cms-field-instructions — helper text
+.cms-field-input        — text input
+.cms-field-textarea     — textarea
+.cms-field-select       — dropdown select
+.cms-field-radio-group  — radio group wrapper
+.cms-field-radio-label  — individual radio label
+.cms-field-checkbox-label      — single checkbox label
+.cms-field-checkbox-group      — checkbox group wrapper
+.cms-field-error        — validation error message
+.cms-form-submit        — submit button
+.cms-form-confirmation  — post-submission confirmation block
+```

@@ -1,0 +1,109 @@
+---
+title: "Configuring PayPal Smart Payment Buttons in Site Store Pro"
+sidebarTitle: "PayPal"
+description: "Enable PayPal Smart Buttons in Site Store Pro without Composer packages. Add Client ID and Secret to .env to accept PayPal, Venmo, cards, and Pay Later."
+---
+
+PayPal is a built-in payment processor in Site Store Pro (processor ID 3). No Composer packages are required — Site Store Pro communicates with the PayPal Orders API v2 using Laravel's native HTTP client. At checkout, the official PayPal JS SDK renders Smart Payment Buttons, giving buyers the option to pay with PayPal, Venmo, cards, or Pay Later depending on their eligibility.
+
+## Overview
+
+Site Store Pro's PayPal integration uses **Laravel's native `Http` client** to communicate with the PayPal Orders API v2. No external Composer packages are required.
+
+At checkout, the official **PayPal JS SDK** renders Smart Payment Buttons inline, giving buyers the option to pay with:
+
+- PayPal wallet
+- Venmo (US)
+- Credit and debit cards
+- PayPal Pay Later (availability depends on buyer region)
+
+---
+
+## Setup
+
+### Step 1 — Add Credentials to `.env`
+
+```ini
+# Production
+PAYPAL_CLIENT_ID=your_live_client_id
+PAYPAL_CLIENT_SECRET=your_live_client_secret
+
+# Sandbox / Test
+PAYPAL_SANDBOX_CLIENT_ID=your_sandbox_client_id
+PAYPAL_SANDBOX_CLIENT_SECRET=your_sandbox_client_secret
+```
+
+<Info>
+  Obtain credentials from the [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/). Create a REST API app to receive your Client ID and Secret for both sandbox and production environments.
+</Info>
+
+### Step 2 — Activate in Admin
+
+Navigate to **Admin → Checkout → Processors**, set **PayPal** as the Primary processor, and toggle **Production** ON or OFF depending on your environment.
+
+---
+
+## Checkout Flow
+
+PayPal uses a client-side order creation \+ server-side capture pattern to ensure payment integrity.
+
+<Steps>
+  <Step title="createOrder() — Server Call">
+    `PayPalProcessor::createOrder()` sends a request to the PayPal Orders API v2, creates a new order object, and returns:
+
+    - The **PayPal Order ID**
+    - The **Client ID** (used to initialize the JS SDK)
+  </Step>
+  <Step title="Smart Buttons Render — Client Side">
+    The PayPal JS SDK loads and renders **Smart Payment Buttons** inside `#paypal-button-container`. Buttons displayed are automatically determined by buyer eligibility (PayPal, Venmo, card, Pay Later).
+  </Step>
+  <Step title="placeOrder($gatewayToken) — Server Call">
+    After the buyer approves the payment in the PayPal popup, `placeOrder()` captures the order server-side via the PayPal API. The full capture authorization code is verified and recorded in `order_payments` before the Site Store Pro order is placed.
+  </Step>
+</Steps>
+
+<Warning>
+  The order is never placed in Site Store Pro until `placeOrder()` completes server-side capture verification. Client-side approval alone is not sufficient.
+</Warning>
+
+---
+
+## PayPal Smart Payment Buttons
+
+The PayPal JS SDK is loaded with the `buttons` component. Button rendering is entirely automatic — PayPal determines which payment methods to display based on:
+
+- Buyer's PayPal account region and eligibility
+- Merchant account capabilities
+- Cart currency and amount
+
+No additional configuration is required to enable Venmo, Pay Later, or card buttons — they appear automatically when eligible.
+
+---
+
+## Extension Override
+
+To customize PayPal behavior without editing the built-in class, create an extension file at:
+
+```text
+payment-processors/paypal/PayPalProcessorExtension.php
+```
+
+The platform auto-detects this file on boot — no changes to `config/payment_processors.php` are needed.
+
+<Tip>
+  The `payment-processors/` directory sits outside `app/` by design. Its contents are never overwritten by platform updates.
+</Tip>
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Payment Overview" icon="credit-card" href="/payments/overview">
+    Understand processor selection, randomize mode, and the two-step checkout flow.
+  </Card>
+
+  <Card title="Webhooks Reference" icon="webhook" href="/payments/webhooks">
+    Full webhook endpoint reference and custom gateway setup instructions.
+  </Card>
+</CardGroup>

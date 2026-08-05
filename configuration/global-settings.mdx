@@ -1,0 +1,189 @@
+---
+title: "Global Settings and Theme Customization for Site Store Pro"
+sidebarTitle: "Global Settings"
+description: "Configure branding colors, button shapes, timezone, product image orientation, and shop search settings from the Site Store Pro admin global settings panel."
+---
+
+The Global Settings panel at `GET /admin/settings` is the central control point for your store's appearance, behavior, and regional configuration.
+
+---
+
+## Dynamic Branding Theme Customizer
+
+Navigate to **Admin → Settings → Appearance** to customize your store's color palette and button style without touching any code.
+
+### Color Controls
+
+| Setting | Description |
+| --- | --- |
+| **Primary Color** | Applied to buttons, links, borders, and active/highlighted UI elements |
+| **Hover Color** | Background and text color shown when hovering over interactive elements |
+| **Text Color** | Text rendered inside buttons — typically `#ffffff` for contrast on colored backgrounds |
+
+### Button Shape
+
+Choose from five button shape presets:
+
+| Shape | Tailwind Class | Appearance |
+| --- | --- | --- |
+| Sharp | `rounded-none` | Perfectly square corners |
+| Rounded MD | `rounded-md` | Slightly softened corners |
+| Rounded XL | `rounded-xl` | Noticeably curved corners |
+| Rounded 2XL | `rounded-2xl` | Heavily rounded corners |
+| Pill / Full | `rounded-full` | Fully pill-shaped buttons |
+
+### How Theme Settings Are Applied
+
+Settings are stored in the `cms_settings` database table. On every page load, the `<x-site-theme-styles />` Blade component reads these values and injects a `<style>` block into both frontend and admin layouts. This automatically overrides the default purple/indigo Tailwind color palette globally — no CSS file edits required.
+
+---
+
+## Customizing Colors & Themes
+
+For deeper customization beyond the admin panel controls, you can extend the Tailwind configuration and add custom CSS overrides.
+
+### Tailwind Theme Configuration
+
+Edit `tailwind.config.js` to register a custom `brand` color palette:
+
+```js
+export default {
+    darkMode: 'class',
+    theme: {
+        extend: {
+            colors: {
+                brand: {
+                    50: '#ecfdf5',
+                    500: '#10b981',
+                    600: '#059669',
+                    700: '#047857',
+                }
+            }
+        }
+    }
+}
+```
+
+Once registered, use these classes anywhere in your Blade templates:
+
+```html
+<button class="bg-brand-600 hover:bg-brand-700 text-white">
+    Shop Now
+</button>
+
+<span class="dark:text-brand-500">Sale Price</span>
+```
+
+### Custom CSS Overrides
+
+Add overrides to `resources/css/app.css` for fine-grained control:
+
+```css
+/* Change dark mode body background and text color */
+.dark body {
+    background-color: #0b130e;
+    color: #e6f4ea;
+}
+```
+
+After editing either file, recompile assets:
+
+```bash
+npm run build
+```
+
+---
+
+## Product Image Orientation
+
+Navigate to **Admin → Settings → Shop Display** to control how product images are cropped and displayed across the catalog.
+
+| Mode | Aspect Ratio | Tailwind Classes | Best For |
+| --- | --- | --- | --- |
+| **Widescreen** (default) | 16:9 | `aspect-video`, `object-cover` | Landscape / banner-style product photography |
+| **Square** | 1:1 | `aspect-square`, `object-contain` | Square product photos, apparel, packaged goods |
+
+<Tip>
+  Choose the orientation that matches the majority of your product photography. Switching after uploading images does not crop existing images — it only changes how they are displayed.
+</Tip>
+
+---
+
+## Advanced Shop Search
+
+Navigate to **Admin → Settings → Shop Display → Enable Advanced Search Filtering Panel**.
+
+| State | Behavior |
+| --- | --- |
+| **OFF** (default) | Standard catalog with basic search |
+| **ON** | Left-side slideout drawer with multi-select filters |
+
+When enabled, the advanced search drawer provides customers with:
+
+- **Brand** multi-select filter
+- **Category** multi-select filter
+- **Price Range** slider/input filter
+- **Variant Attribute** filters (e.g., size, color)
+
+---
+
+## Review System
+
+Navigate to **Admin → Settings** to manage the product review system.
+
+### Global Toggle
+
+Enable or disable the entire review system with a single toggle. When disabled, the review submission form and all existing review displays are hidden from the storefront.
+
+### Third-Party Review Snippets
+
+If you use an external review platform (e.g., Trustpilot, Yotpo, Okendo), you can replace the native review form with a third-party widget:
+
+1. Copy the JavaScript embed code from your review platform.
+2. Paste it into the **Third-Party Review Snippets** field in Admin → Settings.
+3. Save — the native form is replaced with your external widget.
+
+<Info>
+  The native review form and third-party snippet are mutually exclusive. Entering a snippet code automatically suppresses the built-in form.
+</Info>
+
+---
+
+## Timezone Configuration
+
+Navigate to **Admin → Settings → General Settings** and select your store's timezone from the dropdown.
+
+### How It Works
+
+- The selected timezone is stored in the `cms_settings` table under the key `timezone`.
+- `AppServiceProvider::boot()` reads this setting on every boot cycle and calls `date_default_timezone_set()` with the stored value.
+- **No server restart is needed** — the change takes effect immediately on the next request.
+
+### Common Timezone Examples
+
+| Region | Timezone Values |
+| --- | --- |
+| **United States** | `America/New_York`, `America/Chicago`, `America/Denver`, `America/Los_Angeles` |
+| **Europe** | `Europe/London`, `Europe/Paris`, `Europe/Berlin`, `Europe/Rome` |
+| **Asia / Pacific** | `Asia/Tokyo`, `Asia/Shanghai`, `Asia/Kolkata`, `Australia/Sydney` |
+| **Other** | `America/Sao_Paulo`, `Africa/Cairo`, `Pacific/Auckland` |
+
+<Note>
+  Timezone affects all order timestamps, ticket creation times, and scheduled emails displayed in the admin panel.
+</Note>
+
+---
+
+## Site Search Index Rebuild
+
+If search results become stale after bulk content updates, rebuild the search index manually:
+
+```bash
+# Standard rebuild
+php artisan search:rebuild-index
+
+# Force full rebuild even if indexes are locked
+php artisan search:rebuild-index --force
+```
+
+The index covers all CMS pages and products. Run this after bulk imports, large content migrations, or if the search index becomes corrupted.

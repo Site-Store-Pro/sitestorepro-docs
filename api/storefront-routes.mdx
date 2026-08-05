@@ -1,0 +1,89 @@
+---
+title: "Site Store Pro Public Storefront Routes and URL Reference"
+sidebarTitle: "Storefront Routes"
+description: "Every public storefront route in Site Store Pro — shop, products, cart, checkout, dashboard, knowledge base, tickets, digital downloads, and live search API."
+---
+
+This page lists every public-facing route in Site Store Pro. All routes are accessible without authentication unless noted otherwise.
+
+---
+
+## Public Storefront & Cart
+
+| Route | Description |
+| --- | --- |
+| `GET /shop` | Paginated catalog with category drill-down and brand filter panels |
+| `GET /section/{category_slug}` | Category-filtered product catalog |
+| `GET /brands/{brand_slug}` | Brand-filtered product catalog |
+| `GET /items/{seo_link}` | Individual product detail page |
+| `GET /cart` | Shopping cart |
+| `GET /checkout` | Checkout form — guest details entry |
+| `GET /checkout/review` | Order review page with payment widget |
+| `GET /checkout/success/{external_id}` | Post-purchase confirmation invoice |
+| `GET /downloads/{orderDetail}/{token}` | Secure digital download — token-gated, tied to a specific order line item |
+| `GET /cms-download/{id}` | CMS file delivery — no purchase required |
+| `GET /cart/recommendations/{productId}` | Post-cart cross-sell intermediary page |
+| `GET /{slug}` | Dynamic fallback CMS catch-all page view |
+| `GET /category/{slug}` | CMS category archive landing page |
+| `GET /tag/{slug}` | CMS tag archive landing page |
+
+<Info>
+  The `GET /{slug}` catch-all route resolves last in the routing stack. Any named route takes priority — only unmatched slugs fall through to the CMS page lookup.
+</Info>
+
+---
+
+## Customer Dashboard & Helpdesk
+
+| Route | Description |
+| --- | --- |
+| `GET /dashboard` | Customer dashboard — admins and agents (roles 3–5) are automatically redirected to `/admin/dashboard` |
+| `GET /dashboard?tab=tickets` | Support tickets tab — view, filter, and track active and past ticket threads |
+| `GET /dashboard?tab=orders` | Order history tab — expandable row accordion with inline invoices |
+| `GET /dashboard?tab=downloads` | Digital downloads tab — expiration dates, remaining download count, secure links |
+| `GET /tickets/create` | Submit a new support ticket |
+| `GET /tickets/{id}` | Authenticated ticket thread view |
+| `GET /tickets/view/{token}` | Guest ticket thread — tokenized link, no authentication required |
+| `GET /kb` | Knowledge base landing page — category structure, search, and helpfulness ratings |
+| `GET /kb/{seo_link}` | Individual knowledge base article |
+| `GET /search` | Live search results page (pre-seeded CMS page powered by the Live Search plugin) |
+| `GET /api/live-search-api?q={query}` | Live search JSON API — returns category badges, product thumbnails, and content snippets |
+
+<Note>
+  The `/tickets/view/{token}` route is the **guest ticket access** path. It is included in all ticket notification emails so customers without accounts can still view and reply to their tickets.
+</Note>
+
+---
+
+## Public API
+
+| Route | Description |
+| --- | --- |
+| `POST /forms/{slug}/submit` | Submit an embedded CMS form — no authentication required. The `{slug}` parameter accepts either the form's text slug or its numeric ID. |
+
+<Tip>
+  CMS forms are embedded in pages using the `[cms-form id={id}]` shortcode. The submission endpoint is called automatically by the form's built-in JavaScript handler — no custom code required.
+</Tip>
+
+---
+
+## Route Notes
+
+### Secure Digital Downloads
+
+`GET /downloads/{orderDetail}/{token}` enforces token-gated access:
+
+- The `token` is unique to the order line item and generated at purchase time
+- Downloads respect expiration dates and remaining download count limits configured in the admin panel
+- Expired or exhausted download links return a `403` response
+
+### Live Search API
+
+`GET /api/live-search-api?q={query}` returns a JSON payload including:
+
+- Matched products with thumbnail images
+- Category badge labels
+- CMS page snippets
+- Relevance-sorted results
+
+This endpoint powers the `/search` results page and can be queried directly for headless or custom search integrations.

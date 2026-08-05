@@ -1,0 +1,147 @@
+---
+title: "Shortcode Processing Pipelines: Pipeline A and Pipeline B"
+sidebarTitle: "Pipelines"
+description: "Site Store Pro shortcode processing — Pipeline A middleware resolves links on all pages; Pipeline B resolves embeds, forms, and Blade directives per field."
+---
+
+Site Store Pro processes shortcodes through two independent pipelines that run on every public page request. Understanding which pipeline handles which shortcodes — and in what order — is essential when embedding shortcodes in custom content fields or debugging unexpected rendering behavior.
+
+---
+
+## Two Pipelines
+
+| Pipeline | Mechanism | Scope |
+| --- | --- | --- |
+| **Pipeline A** | `ProcessShortcodes` HTTP middleware | Runs after full page render on all public HTML responses |
+| **Pipeline B** | `ContentParserService::parse()` | Called explicitly per field before content is inserted into the page template |
+
+---
+
+## Pipeline A — `ProcessShortcodes` Middleware
+
+Pipeline A runs as **HTTP middleware** on all public frontend HTML responses. It fires **after** the full page has been rendered to a string, scanning the complete output for shortcode tags.
+
+### Shortcodes Handled by Pipeline A
+
+- `[list:N]` — list menu embedding
+- `[page:N]` — CMS page links
+- `[product:N]` — product page links
+- `[category:N]` — category page links
+- `[brand:N]` — brand page links
+
+### Processing Order
+
+<Steps>
+  <Step title="[list:N] Expansion">
+    Scans the final rendered HTML for `[list:N]` patterns and renders each matched list menu as a structured `<ul>/<li>` HTML block.
+  </Step>
+  <Step title="Internal Item Compilation">
+    Resolves each list item's content into `<a>` tags wrapped in `<ul>/<li>` HTML structure.
+  </Step>
+  <Step title="Embedded Plugin/Download in List Items">
+    `[download:N]` and `[plugin:slug]` shortcodes **embedded inside list menu items** are also resolved at this stage, within Pipeline A.
+  </Step>
+  <Step title="Post-Expansion Resolve">
+    A second pass resolves any standalone `[page:N]`, `[product:N]`, `[category:N]`, and `[brand:N]` tags remaining in the page content or footer layouts.
+  </Step>
+</Steps>
+
+---
+
+## Pipeline B — `ContentParserService::parse()`
+
+Pipeline B is called **explicitly** on individual content fields — before the content is inserted into the page template. It processes Blade directives and the richer embedded-content shortcodes.
+
+### Shortcodes Handled by Pipeline B
+
+- `[cms-form id=N]`
+- `[code-embed:N]`
+- `[download:N]`
+- `[plugin:slug]`
+- Blade directives (`@auth`, `{{ }}`, `{!! !!}`, etc.)
+
+### Processing Order (Four Sequential Passes)
+
+| Pass | Handler | Processes |
+| --- | --- | --- |
+| **Pass 0** | `processForms()` | `[cms-form id=N]` shortcodes |
+| **Pass 1a** | `processCodeEmbeds()` | `[code-embed:N]` shortcodes |
+| **Pass 1b** | `processDownloads()` | `[download:N]` shortcodes |
+| **Pass 2** | `processPlugins()` | `[plugin:slug]` shortcodes |
+| **Final** | `Blade::render()` | Compiles `@auth`, `{{ }}`, `{!! !!}`, and all other Blade syntax |
+
+<Info>
+  Passes are sequential and non-overlapping. This means a `[plugin:slug]` shortcode inside a `[download:N]`-rendered block will **not** be processed, because downloads are resolved before plugins.
+</Info>
+
+---
+
+## Shortcode Support Matrix
+
+The table below shows which shortcodes are supported in each content context, and which pipeline resolves them.
+
+| Content Field | list / page / product / category / brand | download | plugin | code-embed | Blade @auth |
+| --- | :-: | :-: | :-: | :-: | :-: |
+| CMS Page main body | ✅ A | ✅ B | ✅ B | ✅ B | ✅ B |
+| CMS Page left sidebar | ✅ A | ✅ B | ✅ B | ✅ B | ✅ B |
+| CMS Page right sidebar | ✅ A | ✅ B | ✅ B | ✅ B | ✅ B |
+| Product short description | ✅ A | ✅ B | ✅ B | ✅ B | ✅ B |
+| Product long description | ✅ A | ✅ B | ✅ B | ✅ B | ✅ B |
+| List menu items | ✅ A | ✅ A¹ | ✅ A¹ | — | ❌ |
+| Site footer / header layouts | ✅ A | ❌ | ❌ | ❌ | ❌ |
+
+> **¹** `[download:N]` and `[plugin:slug]` inside list menu items are resolved automatically during list menu rendering, which runs within Pipeline A.
+
+---
+
+## Model Accessors That Enable Pipeline B
+
+Pipeline B is invoked through **Eloquent model accessors**. When your Blade template uses the parsed accessor instead of the raw column, `ContentParserService::parse()` is automatically called.
+
+| Model | Parsed Accessor | Raw Column |
+| --- | --- | --- |
+| `CmsPage` | `$page->parsed_content` | `content` |
+| `CmsPage` | `$page->parsed_left_col` | `left_col` |
+| `CmsPage` | `$page->parsed_right_col` | `right_col` |
+| `Product` | `$product->parsed_short_description` | `short_description` |
+| `Product` | `$product->parsed_long_description` | `long_description` |
+
+<Warning>
+  Always use the `parsed_*` accessor (with `{!! !!}` unescaped output) in your Blade templates. Using the raw column directly will bypass Pipeline B entirely and shortcodes will appear as literal text.
+</Warning>
+
+**Example:**
+
+```blade
+{{-- ✅ Correct — passes through Pipeline B --}}
+{!! $page->parsed_content !!}
+
+{{-- ❌ Wrong — shortcodes render as raw text --}}
+{!! $page->content !!}
+```
+
+---
+
+## Adding Pipeline B to a New Content Field
+
+To enable full shortcode and Blade directive processing on a custom model field, add a parsed accessor and call `ContentParserService::parse()`:
+
+```php
+// In your Model:
+public function getParsedMyFieldAttribute(): string
+{
+    return app(\App\Services\ContentParserService::class)->parse($this->my_field);
+}
+```
+
+Then reference the accessor in your Blade template:
+
+```blade
+{!! $model->parsed_my_field !!}
+```
+
+This gives the new field the complete Pipeline B treatment — CMS forms, code embeds, downloads, plugins, and Blade directives all resolve automatically.
+
+<Tip>
+  Pipeline A still runs on the final HTML output regardless of which accessor you use, so `[list:N]`, `[page:N]`, `[product:N]`, `[category:N]`, and `[brand:N]` shortcodes will always resolve as long as the content is included in the rendered page HTML.
+</Tip>

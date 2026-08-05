@@ -1,0 +1,211 @@
+---
+title: "Secure Digital Product Downloads for Customers"
+sidebarTitle: "Digital Downloads"
+description: "Token-gated digital downloads in Site Store Pro: per-order expiration, download limits, local and S3 storage options, and the customer Downloads dashboard tab."
+---
+
+## Overview
+
+Site Store Pro delivers digital products through **secure, token-gated download links** that enforce per-order access limits and expiration dates. Files can be stored on local disk, AWS S3 (global or per-variant), or served from a direct external URL — with optional CDN delivery. Customers access their downloads from the order confirmation email or from their account dashboard.
+
+---
+
+## Secure Download Links
+
+**Route:** `GET /downloads/{orderDetail}/{token}`
+
+Every download link is unique to a specific order line item and is protected by a UUID token. To successfully download a file, all three of the following conditions must be satisfied:
+
+| Condition | Description |
+| --- | --- |
+| **Valid order status** | Order must be in an active paid status |
+| **Token match** | The UUID token in the URL must match the order record |
+| **Not expired** | The current date must be before the expiration date |
+| **Downloads remaining** | The used download count must be less than the configured maximum |
+
+### Permitted Order Statuses
+
+Downloads are only served for orders in the following status codes:
+
+```php
+// Active paid statuses that permit downloads
+[1, 2, 5, 7, 8]
+```
+
+Orders in any other status (e.g., pending, refunded, or cancelled) will return an access-denied response.
+
+<Warning>
+  If a customer's order is in a non-permitted status and they attempt to download using a previously valid link, they will see an access error. Admins can manually update order status to restore access.
+</Warning>
+
+---
+
+## Dynamic File Versioning
+
+<Note>
+  The download controller **always resolves the file from the currently active `ProductVariant` record** — not from a snapshot taken at the time of purchase.
+
+  This means if you update or replace the download file on a product variant, **all future downloads for past orders will deliver the updated file automatically**. No order modifications or re-issuance of links is needed.
+</Note>
+
+This design ensures customers always receive the latest version of a digital product (e.g., a software update, a revised PDF, or a new audio master) without any manual intervention.
+
+---
+
+## Email Download Buttons
+
+Customers receive download access through two email types:
+
+1. **Order Confirmation Email** — sent automatically after a successful purchase; includes a secure download button for each digital line item
+2. **Download Reminder Email** — an admin-triggered email (sent from the order management view) that includes fresh secure download buttons
+
+Both email types generate download URLs using the same token-gated route, subject to the same expiration and counter limits.
+
+---
+
+## Customer Downloads Dashboard
+
+Customers can view and manage all their digital purchases from their account:
+
+**Route:** `/dashboard?tab=downloads`
+
+The Downloads tab displays a table of all digital items across all orders, showing:
+
+| Column | Description |
+| --- | --- |
+| Product name & variant | What was purchased |
+| Expiration date | Date after which the download link becomes invalid |
+| Downloads remaining | `max_downloads − used_downloads` |
+| Download button | Active link, or disabled state if expired or exhausted |
+
+<Info>
+  The download button is automatically **disabled** (and clearly labelled) when either of the following is true:
+
+  - The expiration date has passed
+  - The remaining download count has reached zero
+</Info>
+
+---
+
+## Admin Configuration
+
+### Variant-Level Download Settings
+
+Download limits are configured per product variant in the product editor:
+
+**Admin → Products → Edit → Prices & Variants → \[Select Variant\]**
+
+| Field | Default | Description |
+| --- | --- | --- |
+| **Download Expiration Date** | 1 year from today | The date after which download access links expire for this variant |
+| **Max Downloads** | 100 | The maximum number of times this file can be accessed on a single order |
+
+<Warning>
+  **Limits are captured at the time of purchase.**
+
+  The expiration date and max download count are copied into the order record when the customer checks out. Subsequent changes to these values on the variant **do not retroactively affect existing orders** — only new purchases will use the updated limits.
+</Warning>
+
+---
+
+## Storage Modes
+
+Site Store Pro supports four storage backends for download files. The active mode is configured per variant:
+
+<AccordionGroup>
+  <Accordion title="Local Storage">
+    Files are saved to the `public` disk under the `storage/` directory on the server running Site Store Pro.
+
+    **Best for:** Small stores, single-server deployments, or development environments.
+
+    **Consideration:** Files are not automatically replicated. Ensure your server has adequate disk space and backup coverage.
+  </Accordion>
+
+  <Accordion title="Global S3">
+    Files are saved to the AWS S3 bucket defined in your `.env` file. All variants using this mode share the same bucket and credentials.
+
+    **Best for:** Most production deployments. Scalable, durable, and CDN-compatible.
+
+    **Required `.env` keys:**
+
+    ```env
+    AWS_ACCESS_KEY_ID=your-key-id
+    AWS_SECRET_ACCESS_KEY=your-secret
+    AWS_DEFAULT_REGION=us-east-1
+    AWS_BUCKET=your-bucket-name
+    ```
+  </Accordion>
+
+  <Accordion title="Custom S3 Credentials (Per-Variant)">
+    Each variant can specify its own S3 bucket, region, and access credentials. This is useful for multi-vendor stores, compliance requirements, or when distributing files across multiple AWS accounts.
+
+    Configured directly on the variant record — overrides the global S3 settings for that specific file.
+  </Accordion>
+
+  <Accordion title="Direct External URL">
+    Select the **External URL** source option on the variant. The stored path is treated as a raw URL and served directly, without going through Site Store Pro's storage layer.
+
+    **Best for:** Files hosted on external CDNs, third-party platforms, or pre-signed URLs managed outside Site Store Pro.
+
+    **Consideration:** Site Store Pro has no visibility into whether the external URL is available. Ensure the external resource is reliably hosted.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## CDN Support
+
+Site Store Pro supports CDN URL rewriting at two levels:
+
+| Level | Configuration | Applies To |
+| --- | --- | --- |
+| **Global CDN** | `CDN_URL` environment variable | All file downloads using Global S3 or Local Storage |
+| **Per-Variant CDN** | CDN override field on the variant | Only that specific variant's download files |
+
+Per-variant CDN overrides take precedence over the global `CDN_URL`. This allows you to serve most downloads from a shared CloudFront distribution while routing specific high-traffic assets through a dedicated Cloudflare zone.
+
+```env
+# Global CDN override in .env
+CDN_URL=https://cdn.yourstore.com
+```
+
+---
+
+## Admin Upload Guards
+
+Site Store Pro enforces two server-side guards when saving a downloadable variant:
+
+<Steps>
+  <Step title="File Presence Check">
+    A variant marked as a **Downloadable Item** must have a file uploaded (or a valid pre-existing storage location) before the variant can be saved. Attempting to save without a file returns a validation error.
+  </Step>
+  <Step title="Filesystem Write Verification">
+    After upload, Site Store Pro verifies the file was successfully written to the configured storage location. If the check fails (e.g., due to a permissions error, full disk, or S3 misconfiguration), the **entire variant creation is rolled back** — no partial records are saved.
+  </Step>
+</Steps>
+
+<Warning>
+  If variant creation is rolled back due to a storage failure, the admin will see an error message. Check your storage configuration (disk permissions for local, IAM permissions for S3) and retry. The product itself is not affected — only the failed variant is rolled back.
+</Warning>
+
+---
+
+## Quick Reference
+
+<CardGroup cols={2}>
+  <Card title="Download Route" icon="download">
+    `GET /downloads/{orderDetail}/{token}`
+  </Card>
+
+  <Card title="Customer Dashboard" icon="table-columns">
+    `/dashboard?tab=downloads`
+  </Card>
+
+  <Card title="Permitted Order Statuses" icon="circle-check">
+    `[1, 2, 5, 7, 8]`
+  </Card>
+
+  <Card title="Default Limits" icon="clock">
+    Expiry: 1 year · Max downloads: 100
+  </Card>
+</CardGroup>

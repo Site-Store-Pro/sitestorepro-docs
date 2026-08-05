@@ -1,0 +1,87 @@
+---
+title: "Login Security, HMAC Hashing, and OAuth Configuration"
+sidebarTitle: "Security"
+description: "Enable custom HMAC password hashing in Site Store Pro using RIPEMD-256, unique per-user security tokens, and the CUSTOM_LOGIN_SECURITY environment variable."
+---
+
+Site Store Pro supports an optional custom security layer that replaces Laravel's standard bcrypt/argon password hashing with a **RIPEMD-256 HMAC scheme** keyed on unique per-user tokens. This layer is fully opt-in and activates with a single environment variable.
+
+---
+
+## Custom Hashing & Login Security
+
+### Activating Custom Security
+
+Set the `CUSTOM_LOGIN_SECURITY` environment variable to **any non-empty value** in your `.env` file:
+
+```ini
+CUSTOM_LOGIN_SECURITY=enabled
+```
+
+The value itself is not significant — any non-null, non-empty string activates the feature. When this variable is absent or empty, Site Store Pro uses **standard Laravel password hashing** (bcrypt by default).
+
+### Per-User Security Tokens
+
+When `CUSTOM_LOGIN_SECURITY` is active, every new user registration automatically generates two unique random strings stored on the user record:
+
+| Field | Purpose |
+| --- | --- |
+| `user_token_1` | Used as the HMAC key for password hashing |
+| `user_token_2` | Reserved for additional security operations |
+
+These tokens are generated at registration time and are unique to each user.
+
+### RIPEMD-256 HMAC Password Hashing
+
+Passwords are stored as an HMAC hash computed using the RIPEMD-256 algorithm, keyed with the user's unique `user_token_1`:
+
+```php
+$password = hash_hmac('ripemd256', $password, $user_token_1);
+```
+
+The resulting hash is what gets stored in the `users` table — not a bcrypt or argon hash.
+
+<Warning>
+  Once `CUSTOM_LOGIN_SECURITY` is enabled and users have registered, do **not** disable this flag without a password migration strategy. Existing users' stored hashes are RIPEMD-256 HMAC values and will not validate against standard Laravel hashing.
+</Warning>
+
+### Seamless Authentication Fallback
+
+The custom hashing layer is designed for **transparent integration**:
+
+- Login and credential confirmation requests automatically detect the active hashing mode
+- Standard Laravel auth guards continue to function normally
+- OAuth adapters (Google, Facebook, GitHub) are not affected
+- No changes to login views or form submissions are required
+
+When a user authenticates, the system retrieves their `user_token_1`, recomputes the HMAC hash of the submitted password, and compares it to the stored value — all within the normal authentication pipeline.
+
+---
+
+## Social OAuth Authentication
+
+Site Store Pro supports social login through **Laravel Socialite** for the following providers:
+
+<CardGroup cols={3}>
+  <Card title="Google" icon="google">
+    Sign in with Google OAuth 2.0
+  </Card>
+
+  <Card title="Facebook" icon="facebook">
+    Sign in with Facebook Login
+  </Card>
+
+  <Card title="GitHub" icon="github">
+    Sign in with GitHub OAuth
+  </Card>
+</CardGroup>
+
+### Incomplete Social Profile Gating
+
+Social accounts that register with **empty or incomplete profile data** (e.g., no name, no email) are gated at checkout. These users are redirected to a profile completion screen and required to provide full shipping details before an order can be placed.
+
+This ensures that guest-style OAuth signups do not result in unfulfillable orders due to missing customer information.
+
+<Tip>
+  To configure social OAuth providers, add the relevant credentials to your `.env` file 
+</Tip>

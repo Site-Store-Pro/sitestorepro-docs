@@ -1,0 +1,249 @@
+---
+title: "Order Management, Fulfillment, and Refunds in Site Store Pro"
+sidebarTitle: "Orders"
+description: "Manage orders in Site Store Pro — pending queue, order details, partial refunds, payment history, shipment confirmation emails, and checkout custom fields."
+---
+
+&
+
+## Admin Home Dashboard
+
+Navigate to `/admin/dashboard` for a real-time overview of store performance.
+
+### KPI Cards
+
+Four headline metrics appear at the top of the dashboard:
+
+<CardGroup cols={4}>
+  <Card title="Total Sales Revenue" icon="dollar-sign">
+    Aggregate revenue from all completed orders in the selected date window.
+  </Card>
+
+  <Card title="Orders Processed" icon="box-check">
+    Count of orders that have moved past the pending state.
+  </Card>
+
+  <Card title="Pending Orders" icon="clock">
+    Active orders awaiting fulfillment action.
+  </Card>
+
+  <Card title="Active Customers" icon="users">
+    Unique customers who placed at least one order in the period.
+  </Card>
+</CardGroup>
+
+### Dashboard Widgets
+
+| Widget | Description |
+| --- | --- |
+| **Order Activity & Revenue Trends** | SVG line/bar graph of daily order volume and revenue |
+| **Orders vs Abandoned Carts** | Conversion rate widget comparing completed orders to abandoned cart sessions |
+| **Cart Conversion Funnel** | Step-by-step funnel from product view → add-to-cart → checkout → purchase |
+| **Customer Spend Analysis** | Distribution of spend per customer segment |
+| **Product Sales Performance** | Top-performing products by revenue and unit count |
+
+### Date Filters
+
+<Info>
+  The dashboard defaults to the last **30 days**. All KPI cards and widgets update when you change the range.
+</Info>
+
+Available presets:
+
+| Filter | Window |
+| --- | --- |
+| 30d | Last 30 days (default) |
+| 60d | Last 60 days |
+| 90d | Last 90 days |
+| 120d | Last 120 days |
+| YTD | January 1 → today |
+| Custom Range | Any start/end date you choose |
+
+---
+
+## Pending Orders Queue
+
+```http
+GET /admin/pending-orders
+```
+
+Displays **all active non-completed orders** that require a fulfillment action. Results are paginated at **25 per page**.
+
+<Note>
+  An order appears in the Pending Queue as long as its status has not been set to completed or cancelled. Use this view as your primary daily fulfillment worklist.
+</Note>
+
+---
+
+## Orders List
+
+```http
+GET /admin/ecommerce/orders
+```
+
+Full order lookup across all statuses. Paginated at **25 per page**. Use the search bar to filter by order ID, customer name, or email.
+
+---
+
+## Order Details
+
+```http
+GET /admin/ecommerce/orders/{id}
+```
+
+The Order Details page is the central hub for invoice review, fulfillment, and refund actions.
+
+### Order Comments Block
+
+Customer-submitted comments are rendered **above the Items Purchased section** on the invoice. No action is required — they display automatically if the customer entered a comment at checkout.
+
+### Payment History Log
+
+A structured log of every payment event for the order:
+
+| Column | Description |
+| --- | --- |
+| Date | Timestamp of the payment event |
+| Method | Payment gateway used (e.g. Stripe, PayPal) |
+| Status | Outcome: Approved, Declined, Refunded, etc. |
+| Authorization Code | Gateway-returned auth reference |
+| Amount | Dollar value of the transaction |
+
+### Mark Shipped
+
+Clicking the **Mark Shipped** button immediately:
+
+1. Updates the order status to **Shipped (status 2)**.
+2. Triggers and sends a **shipment confirmation email** to the customer.
+
+<Warning>
+  The shipment confirmation email is sent the moment you click Mark Shipped. Confirm the shipping address and tracking details are correct before clicking.
+</Warning>
+
+You can also trigger the same action via the **Status dropdown**: selecting status value `2` (Shipped) has identical behavior — the confirmation email fires immediately.
+
+### Send Download Reminder
+
+For orders containing digital items, the **Send Download Reminder** button manually re-dispatches the download reminder email to the customer on demand.
+
+<Info>
+  This button is only visible on orders that include at least one digital download item.
+</Info>
+
+### Double-Confirmation Action Gate
+
+High-consequence email actions — **Resend Order Confirmation** and **Send Download Reminder** — require **two clicks** to execute:
+
+1. The first click reveals a confirmation prompt inline on the page.
+2. The second click sends the email.
+
+<Warning>
+  This two-step gate prevents accidental duplicate emails. Do not click through both steps unless you intentionally want to re-send the email to the customer.
+</Warning>
+
+### Status Dropdown Reference
+
+| Order Status DB Value | Label | Notes |
+| --- | --- | --- |
+| 1 | Open \| Pending | Default on order placement |
+| 7 | Completed | No Email Sent |
+| 2 | Shipped | Triggers shipment confirmation email |
+| 6 | Back-Ordered | No Email Sent |
+| 8 | Partially Refunded | No Email Sent |
+| 3 | Refunded | No Email Sent |
+| 4 | Cancelled | No Email Sent |
+| 0 | Order Failed Or Awaiting Payment | n/a |
+| 10 | Awaiting Payment By Check or PO | n/a |
+
+---
+
+## Partial or Full Refunds
+
+Partial or full refunds are issued directly from the Order Details page (`/admin/ecommerce/orders/{id}`).
+
+<Steps>
+  <Step title="Open the Order">
+    Navigate to **Admin → Orders** and click the order you need to refund.
+  </Step>
+  <Step title="Locate the Refund Section">
+    Scroll to the **Partial Refund** panel below the Payment History log.
+  </Step>
+  <Step title="Enter Refund Amount">
+    Input the amount to refund. The field will not accept a value exceeding the original charge.
+  </Step>
+  <Step title="Confirm Refund">
+    Click **Issue Refund**. The gateway processes the partial credit and the event is logged in the Payment History.
+  </Step>
+</Steps>
+
+---
+
+## Invoice Address Formatting
+
+US and Canadian order invoices display the city, state, and ZIP in the standard inline format:
+
+```text
+San Diego, CA 92101
+```
+
+- **City** — customer's city
+- **State** — two-letter abbreviation positioned between city and ZIP (US) or province abbreviation (CA)
+- **ZIP / Postal Code** — appended after the state abbreviation
+
+---
+
+## Checkout Custom Fields Manager
+
+```http
+GET /admin/ecommerce/checkout/processors
+```
+
+<Info>
+  Access to the Checkout Custom Fields Manager is restricted to **Admin** role only.
+</Info>
+
+Use this tool to inject custom data-collection fields directly into the checkout flow.
+
+### Field Positions
+
+| Position | Step | Placement |
+| --- | --- | --- |
+| Checkout Step 1 | Shipping form page | Rendered **below** the shipping address form |
+| Billing Page Step 2 | Payment page | Rendered **above** the payment card input |
+
+### Field Types
+
+| Type | Renders As |
+| --- | --- |
+| `input` | Single-line text input |
+| `textarea` | Multi-line text area |
+| `select` | Dropdown `<select>` |
+| `radio` | Radio button group |
+| `checkbox` | Single checkbox |
+| `checkbox_group` | Multiple-selection checkboxes |
+
+### Billing Page User Type Filter
+
+Step-2 fields can be targeted to specific customer segments:
+
+| Setting | Visibility |
+| --- | --- |
+| Both | Shown to all customers |
+| Public Only | Shown only to standard (non-wholesale) customers |
+| Wholesale Only | Shown only to wholesale accounts |
+
+### Data Storage
+
+All custom field responses are stored in the `orders.custom_field_data` JSON column on the order record. The data is available in the Order Details view and exportable via the Orders export.
+
+### Session Carryover
+
+Step-1 (shipping page) field values are **held in session** after the customer advances. When the order is placed, Step-1 values are **merged with Step-2 values** and written together into `orders.custom_field_data`.
+
+```text
+Session (Step 1 values)
+        +
+Form POST (Step 2 values)
+        ↓
+orders.custom_field_data  (single merged JSON object)
+```

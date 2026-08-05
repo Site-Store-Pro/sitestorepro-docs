@@ -1,0 +1,177 @@
+---
+title: "Plugin System: Architecture, Admin Panel, and Settings"
+sidebarTitle: "Plugin System"
+description: "How the Site Store Pro plugin system works, including plugin discovery, the /admin/plugins panel, settings API, shortcode embedding, and deployment commands."
+---
+
+The Site Store Pro plugin system supports display plugins (rendered via shortcodes into CMS pages and product descriptions) and shipping plugins (invoked programmatically to return real-time carrier rates). Plugins are managed at `/admin/plugins` — no Artisan commands are needed to activate or configure them.
+
+## Overview
+
+| Concept | Detail |
+| --- | --- |
+| **Discovery** | Built-in plugins auto-boot on startup. Drop-in folders in `/plugins/` are scanned on every boot. |
+| **Configuration** | All settings stored in the `plugin_settings` table. Managed at `/admin/plugins`. |
+| **Embedding** | Display plugins use shortcodes: `[plugin:slug]` or `[plugin:slug param=value]`. |
+| **Shipping** | Shipping plugins are invoked programmatically via the `PluginManager` singleton. |
+| **Activation** | Toggle active/inactive in the Admin Panel. No Artisan command needed. |
+
+---
+
+## Admin Panel (`/admin/plugins`)
+
+### Plugin List
+
+Each plugin row displays:
+
+- **Name** and description
+- **Type badge**: `display` (indigo), `shipping` (amber), `email` (emerald)
+- **Shortcode** (for display plugins)
+- **Version**
+- **Active toggle** — saves immediately with no page reload
+- **Settings button** — opens the slide-in settings panel
+
+### Settings Panel
+
+The settings panel slides in from the right and contains three tabs:
+
+<Tabs>
+  <Tab title="Settings">
+    A data-driven form generated from the plugin's `plugin_options` rows. Fields are rendered based on `field_type` (input, textarea, select, toggle, etc.). Changes are saved immediately on form submission.
+  </Tab>
+  <Tab title="Usage">
+    - The plugin's **shortcode** with a one-click copy button
+    - Usage instructions and examples
+    - Link to external documentation (if configured)
+  </Tab>
+  <Tab title="Activation">
+    Only shown when `activation_required = yes`.
+
+    - Activation instructions
+    - License key entry field
+    - Activate / Deactivate controls
+  </Tab>
+</Tabs>
+
+---
+
+## Shortcode Syntax
+
+Display plugins are embedded in any CMS page or product description using the shortcode format:
+
+```text
+[plugin:slideshow-2026]
+[plugin:slideshow-2026 id=3]
+[plugin:slideshow-2026 id=2 nav=off paging=off]
+```
+
+- The slug immediately follows `plugin:`
+- Parameters are space-separated key=value pairs
+- No quotes needed around values unless they contain spaces
+
+---
+
+## Accessing Plugin Settings in Code
+
+Use the `Plugin` model to read and write settings programmatically:
+
+```php
+use App\Models\Plugin;
+
+$plugin = Plugin::where('shortcode', 'slideshow-2026')->first();
+
+// Get all settings as ['field_name' => 'field_value'] array
+$settings = $plugin->getSettings();
+
+// Get a single setting with fallback default
+$css = $plugin->getSetting('live_css', '');
+
+// Save settings
+$plugin->saveSettings(['live_css' => '.wrapper { width: 100%; }']);
+
+// Query active plugins by type
+$activeDisplay = Plugin::active()->ofType('display')->get();
+```
+
+---
+
+## Using PluginManager
+
+The `PluginManager` singleton is available via the service container and handles both rendering display plugins and aggregating shipping rates:
+
+```php
+use App\Plugins\Support\PluginManager;
+
+$manager = app(PluginManager::class);
+
+// Render a display plugin by slug
+$html = $manager->renderDisplay('slideshow-2026', ['id' => '3']);
+
+// Get shipping rates
+use App\Plugins\Support\ShippingContext;
+
+$context = new ShippingContext(
+    fromZip: '75001',
+    toZip: '10001',
+    toCountry: 'US',
+    weightLbs: 2.5,
+    declaredValue: 99.99
+);
+
+$rates = $manager->getShippingRates($context); // Aggregates from all active shipping plugins
+```
+
+The `getShippingRates()` call queries every active shipping plugin and merges the results into a single array, sorted low-to-high by rate.
+
+---
+
+## Plugin Deployment Checklist
+
+Run the following commands after a fresh installation or when adding new plugins:
+
+```bash
+# 1. Create plugin tables
+php artisan migrate
+
+# 2. Seed built-in plugins (Slideshow, Featured Items, FedEx, UPS, USPS)
+php artisan db:seed --class=PluginSeeder
+
+# 3. Clear caches
+php artisan optimize:clear
+```
+
+<Info>
+  Re-running the seeder is safe — all records use `updateOrCreate`, so existing settings are not overwritten.
+</Info>
+
+---
+
+## Credential Storage
+
+<Note>
+  Carrier API credentials (FedEx, UPS, USPS) are stored in the `plugin_settings` table via the Admin Panel — **not** in `.env`.
+</Note>
+
+This design means:
+
+- No environment variable changes are needed when adding or rotating carrier credentials
+- Different environments (staging, production) can maintain separate credentials in their own databases
+- Credentials can be updated at runtime without a deployment
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Display Plugins" icon="image" href="/plugins/display-plugins">
+    Slideshow, Featured Items, Cross-Sell List, Events Calendar, and Live Search.
+  </Card>
+
+  <Card title="Shipping Plugins" icon="truck" href="/plugins/shipping-plugins">
+    Real-time rates from FedEx REST API, UPS REST API, and USPS REST API v3.
+  </Card>
+
+  <Card title="Custom Plugins" icon="code" href="/plugins/custom-plugins">
+    Build and drop in your own display or shipping plugins.
+  </Card>
+</CardGroup>

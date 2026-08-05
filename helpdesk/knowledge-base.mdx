@@ -1,0 +1,116 @@
+---
+title: "Knowledge Base Articles, Categories, and AI Article Writer"
+sidebarTitle: "Knowledge Base"
+description: "Manage Site Store Pro knowledge base articles — organize by category, collect helpful ratings, and write faster with the built-in OpenAI article writer."
+---
+
+Site Store Pro includes a built-in knowledge base that lets you publish self-service help articles for customers. Articles are organized into categories, searchable from a public landing page, and rated with helpful/not-helpful votes. An AI-powered article writer — backed by OpenAI — lets you draft articles in seconds.
+
+---
+
+## Public Knowledge Base
+
+### KB Landing Page
+
+`GET /kb`
+
+The public knowledge base landing page presents:
+
+- **Category structure** — articles grouped and browsable by category
+- **Search** — full-text search across all published articles
+- **Helpfulness ratings** — visitors can upvote or downvote each article to signal whether it solved their problem
+
+<Tip>
+  Helpfulness ratings feed back into the admin panel so you can identify articles that need improvement.
+</Tip>
+
+### Individual KB Article
+
+`GET /kb/{seo_link}`
+
+Each article is served at its unique SEO-friendly slug. Articles are rendered with full HTML formatting from the TinyMCE editor, including images, tables, code blocks, and embedded media.
+
+---
+
+## Admin Knowledge Base Management
+
+### Article Manager
+
+`GET /admin/kb`
+
+The article management console lets administrators:
+
+<CardGroup cols={2}>
+  <Card title="Create Articles" icon="pen-to-square">
+    Draft new articles using the TinyMCE rich-text editor with full HTML support.
+  </Card>
+
+  <Card title="Edit & Delete" icon="trash">
+    Full CRUD operations — update content, change categories, and remove outdated articles.
+  </Card>
+
+  <Card title="Sort Orders" icon="arrow-up-arrow-down">
+    Drag-and-drop or manual sort ordering controls the display sequence on the public KB.
+  </Card>
+
+  <Card title="Draft States" icon="file-circle-question">
+    Save articles as drafts and publish when ready — drafts are hidden from the public KB.
+  </Card>
+</CardGroup>
+
+### Category Editor
+
+`GET /admin/kb/categories`
+
+Organize your knowledge base with a dedicated category editor. Categories appear as browsable groupings on the public `/kb` landing page.
+
+| Field | Details |
+| --- | --- |
+| Category Name | Display name shown to visitors |
+| Sort Order | Controls the sequence categories appear in |
+| Articles | Articles are assigned to a category during article creation or editing |
+
+---
+
+## AI Article Writer
+
+Site Store Pro includes an AI-powered article writer that can generate a full draft article from a prompt or topic title in seconds.
+
+<Info>
+  The AI Article Writer requires a valid `OPENAI_API_KEY` in your `.env` file. Without this key, the AI writer button will not appear in the admin editor.
+</Info>
+
+### Setup
+
+Add your OpenAI API key to your `.env` file:
+
+```ini
+OPENAI_API_KEY=sk-...your-key-here...
+```
+
+### Using the AI Writer
+
+1. Navigate to `GET /admin/kb` and click **New Article** (or open an existing article to edit).
+2. Enter a title or topic prompt in the article subject field.
+3. Click the **AI Write** button in the editor toolbar.
+4. The system sends your prompt to the OpenAI API and inserts the generated content directly into the TinyMCE editor.
+5. Review and edit the draft before publishing.
+
+<Warning>
+  AI-generated content should always be reviewed by a human before publishing. The AI writer accelerates drafting but is not a substitute for editorial review.
+</Warning>
+
+### How It Works
+
+The AI writer sends a structured prompt to the OpenAI completions API and streams the generated response directly into the TinyMCE editor field. No additional packages or configuration are required beyond setting the `OPENAI_API_KEY` environment variable.
+
+---
+
+## Helpfulness Ratings
+
+Each public KB article displays an upvote/downvote widget at the bottom:
+
+- **👍 Helpful** — increments the article's helpful vote counter
+- **👎 Not Helpful** — increments the not-helpful counter
+
+Ratings are stored per-article and visible in the admin article list so you can prioritize improving low-rated content. Ratings are anonymous — no account is required to vote.

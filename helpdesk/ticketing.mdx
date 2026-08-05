@@ -1,0 +1,149 @@
+---
+title: "Helpdesk Ticketing: Submit and Manage Support Requests"
+sidebarTitle: "Ticketing"
+description: "Submit and manage support tickets in Site Store Pro with ticket forms, staff console, agent queues, tokenized guest links, and inbound email replies via webhook."
+---
+
+Site Store Pro includes a full helpdesk ticketing system — customers can open support requests from their dashboard or directly via `/tickets/create`, staff manage and reply through the admin console, and tokenized guest links let unauthenticated visitors track their tickets without logging in.
+
+---
+
+## Customer Ticket Submission
+
+### Creating a Ticket
+
+Customers navigate to `GET /tickets/create` to open a new support request. The submission form accepts:
+
+| Field | Details |
+| --- | --- |
+| Subject | Short summary of the issue |
+| Category Tags | One or more category tags to classify the request |
+| Description | Full-text description of the problem or question |
+| File Attachments | Up to **5 MB** per attachment |
+
+<Tip>
+  File attachments are a great way to share screenshots, error logs, or order confirmation PDFs directly with support staff.
+</Tip>
+
+### Viewing a Ticket Thread
+
+| Route | Access |
+| --- | --- |
+| `GET /tickets/{id}` | Authenticated ticket thread — requires the customer to be logged in |
+| `GET /tickets/view/{token}` | Tokenized guest access — works without authentication |
+
+The tokenized link (`/tickets/view/{token}`) is automatically included in every ticket confirmation and staff reply email. This gives unauthenticated customers — such as guest checkout buyers — secure read and reply access to their ticket thread without needing an account.
+
+<Info>
+  Tokenized links are cryptographically unique per ticket. Sharing the link gives the recipient full thread access, so treat them like a password.
+</Info>
+
+---
+
+## Customer Dashboard
+
+Logged-in customers access all self-service tools from a single tab-switched workspace at `GET /dashboard`.
+
+### Dashboard Tabs
+
+| Tab | Route | Contents |
+| --- | --- | --- |
+| **Support Tickets** | `?tab=tickets` | View, filter, and track past and active ticket threads |
+| **Order History** | `?tab=orders` | Expandable row accordion with inline invoices |
+| **Digital Downloads** | `?tab=downloads` | Expiration dates, remaining download count, and secure download links |
+
+### Admin & Agent Redirect
+
+<Warning>
+  Admins and agents (roles 3, 4, and 5) who land on `/dashboard` are **automatically redirected** to `/admin/dashboard`. The customer dashboard is only visible to roles 1 and 2.
+</Warning>
+
+### Conditional Navigation
+
+The public site header adapts based on the authenticated user's role:
+
+- **Customers (roles 1 & 2):** Public header with site logo, **Tickets**, **Orders**, and **Downloads** tabs, profile controls, and sign-out link.
+- **Admins & Staff (roles 3, 4 & 5):** Full backoffice administration sidebar — the public header is not shown.
+
+---
+
+## Staff Operations
+
+### Admin Ticket Console
+
+`GET /admin/tickets`
+
+The main ticket management interface for administrators. Features include:
+
+<CardGroup cols={2}>
+  <Card title="Search & Filter" icon="magnifying-glass">
+    Full-text search across all tickets with status and category filters.
+  </Card>
+
+  <Card title="Status Updates" icon="circle-check">
+    Update ticket status (open, pending, resolved, closed) in bulk or individually.
+  </Card>
+
+  <Card title="Agent Assignment" icon="user-check">
+    Assign tickets to specific support agents from a staff member dropdown.
+  </Card>
+
+  <Card title="Post Replies" icon="reply">
+    Write and send staff replies directly from the console, with attachment support.
+  </Card>
+</CardGroup>
+
+- **Pagination:** 25 tickets per page
+- **Delete:** Admins can permanently delete tickets from this view
+
+### Agent Queue
+
+`GET /admin/assigned-tickets`
+
+A focused view showing **only the tickets assigned to the currently authenticated agent**. This keeps agents' workloads clear without the noise of the full queue.
+
+---
+
+## Inbound Email Webhook
+
+Staff replies and customers can respond to tickets directly by replying to notification emails — no need to log into the dashboard.
+
+**Endpoint:** `POST /webhooks/inbound-email`
+
+### How It Works
+
+Every ticket notification email is sent from a unique reply-to address in the format:
+
+```text
+reply+{token}@yourdomain.com
+```
+
+When a recipient replies to this address, the email is routed to the inbound webhook. The system:
+
+1. Extracts the `{token}` from the recipient address
+2. Verifies the token against the `tickets` table
+3. Appends the email body as a new reply on the matched ticket thread
+
+<Note>
+  The webhook route is CSRF-exempt. See the [Webhooks reference](/api/webhook-endpoints) for full authentication details.
+</Note>
+
+### Supported Email Providers
+
+<CardGroup cols={3}>
+  <Card title="Cloudflare Email Workers" icon="cloud">
+    Route inbound mail through Cloudflare's email routing rules to forward to your webhook URL.
+  </Card>
+
+  <Card title="Mailgun" icon="envelope">
+    Configure Mailgun's inbound routing to `POST` parsed email payloads to your endpoint.
+  </Card>
+
+  <Card title="Postmark" icon="paper-plane">
+    Use Postmark's inbound processing to forward structured JSON email bodies to the webhook.
+  </Card>
+</CardGroup>
+
+<Tip>
+  Configure the reply-to domain in your DNS and mail provider settings to match `reply+*@yourdomain.com` so all tokenized reply addresses are routed correctly.
+</Tip>

@@ -1,0 +1,150 @@
+---
+title: "Product Reviews and Ratings — Moderation and Configuration"
+sidebarTitle: "Reviews"
+description: "Configure and moderate product reviews in Site Store Pro — star ratings, global and per-product toggles, third-party widget override, and moderation actions."
+---
+
+Site Store Pro includes a built-in product review system with fractional star ratings, Alpine.js interactive submission forms, and a full admin moderation panel at `/admin/ecommerce/reviews`. The review system can be toggled on or off globally from Admin → Settings, overridden per product, or replaced entirely with a third-party widget such as Trustpilot or Yotpo.
+
+## Storefront Ratings & Feedback
+
+### Fractional Star Ratings
+
+Site Store Pro renders average ratings with **precise fractional stars** — the star track is drawn as an SVG with a clip path set to the exact decimal percentage of the average score.
+
+For example, an average rating of **4.3** renders as 4 full stars and a 30%-filled fifth star — not rounded to a whole number.
+
+### Sorting Options
+
+Customers can sort the review list by:
+
+| Option | Behavior |
+| --- | --- |
+| Most Recent (default) | Newest approved reviews shown first |
+| Highest Rated | 5-star reviews shown first |
+| Lowest Rated | 1-star reviews shown first |
+
+### Interactive Star Submission Form
+
+The review submission form is an **Alpine.js hover component** that provides real-time star highlighting as the customer moves their cursor. The form collects:
+
+| Field | Required |
+| --- | --- |
+| Star Rating (1–5) | ✅ Yes |
+| Name | ✅ Yes |
+| Location | No |
+| Comments | No |
+
+### XSS Sanitization
+
+Before any submitted review is written to the database, **all HTML tags and script elements are stripped** from the input. This prevents stored XSS attacks via review content.
+
+<Warning>
+  Even with sanitization in place, review moderation (approval before display) is the recommended setting for public storefronts. See Admin Moderation below.
+</Warning>
+
+---
+
+## Global & Product-Level Configuration
+
+<Tabs>
+  <Tab title="Global On/Off Switch">
+    Navigate to **Admin → Settings** (`/admin/settings`) to toggle the review system on or off **sitewide**.
+
+    When the global switch is **OFF**:
+
+    - No review forms are rendered anywhere on the storefront
+    - Existing reviews are hidden from all product pages
+    - The admin moderation panel remains accessible
+
+    <Note>
+      Turning the global switch back ON immediately restores all previously approved reviews to the storefront.
+    </Note>
+  </Tab>
+  <Tab title="Third-Party Review Widget">
+    In the same **Admin → Settings** page, paste any third-party review JavaScript snippet (e.g. Trustpilot, Yotpo, Okendo) into the **Review Snippets** text area.
+
+    When a snippet is present:
+
+    - The **native Site Store Pro review form is disabled**
+    - The third-party widget is rendered at the **bottom of every product page** instead
+    - The native star rating display is also suppressed, deferring to the widget's own UI
+
+    <Tip>
+      Clear the Review Snippets field to revert to the native review system.
+    </Tip>
+  </Tab>
+  <Tab title="Per-Product Toggle">
+    Each individual product has its own **Reviews On/Off toggle** on the product edit page (`/admin/ecommerce/products/{id}/edit`).
+
+    This setting is independent of the global switch — you can disable reviews on specific products (e.g. sample items, internal SKUs) while keeping the review system active sitewide.
+
+    | Global Setting | Product Setting | Result |
+    | --- | --- | --- |
+    | ON | ON | Reviews shown |
+    | ON | OFF | Reviews hidden for this product only |
+    | OFF | ON | Reviews hidden sitewide |
+    | OFF | OFF | Reviews hidden sitewide |
+  </Tab>
+</Tabs>
+
+---
+
+## Admin Moderation
+
+### Global Reviews Panel
+
+`GET /admin/ecommerce/reviews`
+
+The sitewide reviews panel provides:
+
+<CardGroup cols={2}>
+  <Card title="View All Reviews" icon="list">
+    Browse all submitted reviews across every product in your catalog
+  </Card>
+
+  <Card title="Search" icon="magnifying-glass">
+    Search reviews by customer name, content, or product
+  </Card>
+
+  <Card title="Filter by Product" icon="filter">
+    Narrow the list to reviews for a specific product
+  </Card>
+
+  <Card title="Filter by Approval Status" icon="circle-check">
+    Show only pending, approved, or unapproved reviews
+  </Card>
+</CardGroup>
+
+Available actions on each review:
+
+- **Approve** — makes the review visible on the storefront
+- **Unapprove** — hides the review from the storefront (preserves the record)
+- **Edit** — modify the review content (e.g. fix formatting, remove personal information)
+- **Delete** — permanently removes the review
+
+### Per-Product Reviews Panel
+
+An embedded reviews table is also available directly inside the **product edit form**. This panel shows only reviews for that specific product and supports the same approve, unapprove, edit, and delete actions — without navigating away from the product editor.
+
+---
+
+## Average Rating Recalculation
+
+Site Store Pro automatically recalculates the `reviews_rating` field on the parent `Product` record after any of the following admin actions:
+
+<Steps>
+  <Step title="Review Approved">
+    When a review is **approved**, it is included in the average rating calculation and `reviews_rating` is updated immediately.
+  </Step>
+  <Step title="Review Unapproved">
+    When a review is **unapproved**, it is excluded from the average and `reviews_rating` is recalculated without it.
+  </Step>
+  <Step title="Review Deleted">
+    When a review is **deleted**, `reviews_rating` is recalculated across the remaining approved reviews.
+  </Step>
+</Steps>
+
+<Note>
+  The `reviews_rating` value on the `Product` model always reflects **only approved reviews**. Pending and unapproved reviews have no effect on the displayed star rating.
+</Note>

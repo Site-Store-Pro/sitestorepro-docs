@@ -1,0 +1,132 @@
+---
+title: "Currency, VAT Rates, and Pricing Configuration in Site Store Pro"
+sidebarTitle: "Currency & VAT"
+description: "Configure currency and VAT in Site Store Pro — VAT-inclusive display for domestic buyers, automatic cross-border VAT removal, and country-based tax labels."
+---
+
+Site Store Pro supports full international currency and VAT configuration. Once you set your merchant country and currency, the platform automatically handles VAT-inclusive display pricing for domestic buyers and transparent VAT removal for US and Canadian cross-border customers.
+
+---
+
+## Merchant Location & Currency
+
+Navigate to **Admin → Shipping & Taxes Console** (`/admin/ecommerce/shipping`) and locate the **Merchant Location & Currency** section.
+
+| Setting | Description |
+| --- | --- |
+| **Merchant Country** | Defaults to United States. Determines whether VAT-inclusive mode activates. |
+| **Currency Code** | 3-character ISO 4217 code (e.g., `USD`, `GBP`, `EUR`, `AUD`, `CAD`) |
+| **Currency Symbol** | Prefix-positioned symbol displayed before prices (e.g., `£19.99`). Defaults to `$`. |
+
+<Warning>
+  An amber warning banner is shown in the admin panel when you select a non-US/Canadian merchant country, alerting you that VAT-inclusive pricing mode will activate.
+</Warning>
+
+### Common Currency Examples
+
+| Currency | Code | Symbol |
+| --- | --- | --- |
+| British Pound | `GBP` | `£` |
+| Euro | `EUR` | `€` |
+| Australian Dollar | `AUD` | `A$` |
+| Canadian Dollar | `CAD` | `C$` |
+| Japanese Yen | `JPY` | `¥` |
+| US Dollar | `USD` | `$` |
+
+---
+
+## Currency Symbol Propagation
+
+Once saved, the currency symbol is applied consistently across the entire storefront:
+
+<CardGroup cols={2}>
+  <Card title="Shop Catalog" icon="store">
+    All product listing prices use the configured symbol.
+  </Card>
+
+  <Card title="Product Details" icon="tag">
+    Individual product page prices and variant pricing.
+  </Card>
+
+  <Card title="Cart & Drawer" icon="cart-shopping">
+    Shopping cart and slide-out cart drawer totals.
+  </Card>
+
+  <Card title="Checkout & Confirmation" icon="receipt">
+    Order review page, checkout success page, and order confirmation emails.
+  </Card>
+</CardGroup>
+
+---
+
+## VAT-Inclusive Pricing
+
+VAT-inclusive pricing activates **automatically** when your Merchant Country is set to any country other than the United States or Canada.
+
+### How Prices Are Stored
+
+<Info>
+  The database always stores **ex-VAT (net) values** in the `public_price`, `wholesale_price`, and `sale_price` columns. VAT is applied at display time — never stored in the price itself.
+</Info>
+
+This means your stored prices are always the net amount, and the VAT rate is layered on at render time based on the customer's location.
+
+### Domestic VAT (Merchant Country = Customer Country)
+
+When a customer is located in the same country as the merchant:
+
+- All prices are displayed **inclusive of VAT**: `net price × (1 + rate/100)`
+- The order review page shows an informational line: **"Includes VAT £X.XX"**
+- This is a breakdown label only — it is **not** an additive charge on top of the displayed price
+
+### Cross-Border VAT Removal (US & Canadian Buyers)
+
+When the platform detects a buyer located in the US or Canada:
+
+1. The order subtotal is divided by `(1 + rate/100)` to **strip the embedded VAT**
+2. No VAT line is shown in the order summary
+3. The customer pays only the net price
+
+**Example walkthrough:**
+
+| Scenario | Price Shown |
+| --- | --- |
+| Product stored in database | `£16.67` (ex-VAT net price) |
+| UK buyer sees (20% VAT applied) | `£20.00` (incl. VAT) |
+| US buyer sees (VAT stripped) | `$16.67` (net only) |
+
+---
+
+## Dynamic Tax Labels
+
+The tax label displayed at checkout adapts automatically to the customer's country:
+
+| Customer Country | Tax Label Shown |
+| --- | --- |
+| United States | Sales Tax |
+| Canada | GST/HST |
+| All other countries | VAT |
+
+---
+
+## VAT Rate Source
+
+The merchant VAT rate is looked up from the `shipping_countries` table. The system matches the merchant's configured country code where `charge_vat = 1` and reads the `custom_vat_rate` column.
+
+**Example:** A UK merchant (`GB`) with `custom_vat_rate = 20` results in **20% VAT** applied to all domestic display prices.
+
+To update your VAT rate, navigate to **Admin → Shipping & Taxes Console** and edit the VAT rate for your merchant country in the shipping countries table.
+
+---
+
+## Caching & Performance
+
+<Note>
+  Currency and VAT configuration is cached for **60 minutes**. Saving your shipping configuration in the admin panel **automatically flushes this cache**, so changes take effect on the very next request.
+</Note>
+
+The platform handles all currency symbol propagation, VAT rate lookups, cross-border detection, and price formatting automatically. No code changes are required when switching currencies or VAT rates — simply update the settings in **Admin → Shipping & Taxes Console** and the storefront updates immediately.
+
+## Third-Party Tax API Integration
+
+Site Store Pro includes a structured integration point for **Avalara** (or similar tax API) services. Contact your implementation partner for details on enabling a live tax API connection.

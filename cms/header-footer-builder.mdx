@@ -1,0 +1,165 @@
+---
+title: "Header & Footer Block Builder and CSS Theme Manager"
+sidebarTitle: "Header & Footer"
+description: "Customize the Site Store Pro header and footer with the block builder. Set CSS theme variables, background images, per-device layouts, and dynamic shortcodes."
+---
+
+## Overview
+
+The **Database-Driven Header & Footer Builder** decouples layout from Blade template files. Admins define blocks with per-device content and sort orders entirely through the admin panel — no code changes required. The system is 100% backward-compatible with shortcodes, navigation menus, and plugins.
+
+---
+
+## Block Structure (`cms_builder_blocks`)
+
+Each header or footer region is made up of one or more blocks stored in the `cms_builder_blocks` table.
+
+### Block Fields
+
+| Field | Description |
+| --- | --- |
+| `target_element` | CSS class target that identifies where the block renders (e.g. `site_header_container`, `footer_row1`, `footer_col1`) |
+| `type` | Block type code (see table below) |
+| `section_type` | `header` or `footer` |
+| `sort_desktop` | Sort position on desktop viewports |
+| `sort_tablet` | Sort position on tablet viewports |
+| `sort_mobile` | Sort position on mobile viewports |
+| `content_desktop` | HTML content for desktop |
+| `content_tablet` | HTML content for tablet (falls back to `content_desktop` if empty) |
+| `content_mobile` | HTML content for mobile (falls back to `content_desktop` if empty) |
+
+### Block Types
+
+| `type` | Name |
+| --- | --- |
+| `1` | Header Container |
+| `2` | Header Inner Element |
+| `3` | Top Bar Column |
+| `4` | Footer Row |
+| `5` | Footer Column |
+
+<Info>
+  Device-specific content allows you to show a condensed mobile header while keeping a full-width desktop version — all from the same block record.
+</Info>
+
+---
+
+## Supported Shortcodes in Header/Footer Blocks
+
+Header and footer block content supports the following dynamic tokens:
+
+### Logo Tokens
+
+| Token | Behavior |
+| --- | --- |
+| `{{Logo}}` | Full-size configured site logo; falls back to default SVG icon if not configured |
+| `{{Logo-Medium}}` | Medium-size variant |
+| `{{Logo-Small}}` | Small-size variant |
+
+### UI Component Tokens
+
+| Token | Output |
+| --- | --- |
+| `{{Search Bar: Live Keyword Search}}` | Live keyword search input field |
+| `{{Social Media Icons (Small)}}` | Social media icon links |
+| `{{News Flash Display}}` | Alert/news ticker text |
+
+### Navigation & Link Tokens
+
+| Token | Output |
+| --- | --- |
+| `{{menu\|\|id, label}}` | Renders a dynamic list menu by ID |
+| `{{category\|\|id, label}}` | Link to a category page |
+| `{{subcategory\|\|id, label}}` | Link to a subcategory page |
+| `{{brand\|\|id, label}}` | Link to a brand page |
+
+### Utility Tokens
+
+| Token | Output |
+| --- | --- |
+| `{{year}}` or `#year#` | Current year via `date('Y')` — auto-updates every year |
+
+### Standard Shortcodes
+
+All standard shortcodes are also supported inside header/footer blocks:
+
+```text
+[plugin:slug]
+[cms-form id=N]
+[download:N]
+[code-embed:N]
+```
+
+---
+
+## CSS Theme Variable Manager
+
+The CSS Theme Variable Manager configures custom properties injected site-wide via the `<x-site-theme-styles />` Blade component.
+
+### Accent & Header Colors
+
+| Setting | CSS Variable / Purpose |
+| --- | --- |
+| Primary Accent Color | Main brand color for buttons and highlights |
+| Secondary Accent Color | Supporting accent |
+| Tertiary Accent Color | Third-level accent |
+| Header Background | Header region background color |
+| Top Nav Container Background | Background of the navigation bar container |
+| Desktop Menu Font Color | Link text color in the desktop navigation |
+
+### Background Images
+
+| Setting | Description |
+| --- | --- |
+| Header Background Image | Upload or CDN URL for header background |
+| Footer Background Image | Upload or CDN URL for footer background |
+| Background Repeat | CSS `background-repeat` value |
+| Background Size | CSS `background-size` value (e.g. `cover`, `contain`) |
+| Background Position | CSS `background-position` value (e.g. `center center`) |
+
+### Navigation Colors
+
+| Setting | Purpose |
+| --- | --- |
+| Link Hover Color | Color of nav links on hover |
+| Dropdown Background | Dropdown menu background |
+| Dropdown Link Color | Text color of dropdown items |
+| Dropdown Hover Color | Dropdown item hover state |
+
+### Footer Colors & Typography
+
+| Setting | Purpose |
+| --- | --- |
+| Footer Background | Footer region background color |
+| Footer Header Title Color | Section heading color inside footer |
+| Footer Link Color | Anchor link color |
+| Footer Link Hover Color | Anchor link hover color |
+| Footer General Text Color | Body/paragraph text color |
+| Footer Font Sizes | Configurable per text element |
+
+### Layout & Custom CSS
+
+| Setting | Purpose |
+| --- | --- |
+| Site Max Width | CSS `max-width` constraint for the site container |
+| Border Radii | Global button/card/input border radius |
+| Custom CSS Textarea | Additional raw CSS injected into `<x-site-theme-styles />` |
+
+---
+
+## Pre-seeded 5-Column Responsive Footer
+
+Site Store Pro includes a starter footer layout with five content columns and a copyright row:
+
+| Block | Default Content |
+| --- | --- |
+| `footer_col1` | Quick Navigation: Home, Shop, Featured, Brands, KB |
+| `footer_col2` | Customer Service: Cart, Checkout, Order Status, Shipping Policy, Returns |
+| `footer_col3` | Company & Legal: About, Contact, Privacy, Terms, FAQ |
+| `footer_col4` | Corporate info: address, phone, email, business hours |
+| `footer_col5` | Social media icons via `[plugin:social-icons-2026 size=md font_awesome=on]` |
+| `footer_row4` | Copyright bar with dynamic `{{year}}`, legal links, and social icons |
+
+<Note>
+  The pre-seeded footer is fully editable. Modify block content directly in the Header & Footer Builder admin interface — no template files need to be changed.
+</Note>

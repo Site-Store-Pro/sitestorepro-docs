@@ -1,0 +1,225 @@
+---
+title: "Load and Remove the Site Store Pro Demo Store Content"
+sidebarTitle: "Demo Store"
+description: "Seed demo products, brands, and categories to explore Site Store Pro features. Learn to load and purge all demo content before going live."
+---
+
+The Demo Store gives you a fully populated Site Store Pro installation to explore — with real product types, variants, images, inventory records, cross-selling relationships, and event data — without you having to create anything manually. When you're ready to go live, a single button purges every trace of demo content instantly.
+
+---
+
+## What the Demo Store Includes
+
+### Brands
+
+| Brand |
+| --- |
+| Prestige Design |
+| DeMarco |
+| Old Heritage |
+| Bella Luna |
+| Excelsior |
+
+### Categories
+
+| Category | Type |
+| --- | --- |
+| Custom Jewelry | Top-level category |
+| ↳ Rings | Subcategory of Custom Jewelry |
+| ↳ Bracelets | Subcategory of Custom Jewelry |
+| Watches | Top-level category |
+| Downloads & Media | Top-level category |
+| Gifts & Apparel | Top-level category |
+| Service Items | Top-level category |
+| Workshops & Seminars | Top-level category |
+
+### Products (34)
+
+<Accordion title="View Full Product List">
+  | # | Product | Type | Variants |
+  | --- | --- | --- | --- |
+  | 1 | Gold Chain Bracelet | Standard | 1 |
+  | 2 | Silver Charm Bracelet | Standard | 1 |
+  | 3 | Diamond Tennis Bracelet | Standard | 1 |
+  | 4 | Pearl Strand Bracelet | Standard | 1 |
+  | 5 | Solitaire Diamond Ring | Standard | 1 |
+  | 6 | Vintage Sapphire Ring | Standard | 1 |
+  | 7 | Gold Band Ring | Standard | 1 |
+  | 8 | Emerald Halo Ring | Standard | 1 |
+  | 9 | Silver Pendant Necklace | Standard | 1 |
+  | 10 | Diamond Lariat Necklace | Standard | 1 |
+  | 11 | Gold Choker Necklace | Standard | 1 |
+  | 12 | Pearl Drop Earrings | Standard | 1 |
+  | 13 | Diamond Stud Earrings | Standard | 1 |
+  | 14 | Gold Hoop Earrings | Standard | 1 |
+  | 15 | Classic Chronograph Watch | Standard | 1 |
+  | 16 | Luxury Dress Watch | Standard | 1 |
+  | 17 | Sport Diver Watch | Standard | 1 |
+  | 18 | Jewelry Cleaning eBOOK | Download | 1 download variant |
+  | 19 | Jewelry Repair Webinar | Download | 1 download variant |
+  | 20 | Jewelry Accessorizing Webinar | Download | 1 download variant |
+  | 21 | Digital Marketing Seminar | Event | 3 session variants |
+  | 22 | Social Media Workshop | Event | 1 event variant |
+  | 23 | Inventory Management Seminar | Event | 1 event variant |
+  | 24 | eCommerce Strategies Seminar | Event | 1 event variant |
+  | 25 | Business Processes Seminar | Event | 1 event variant |
+  | 26 | Men's T-Shirt | Apparel | 6 color variants |
+  | 27 | Women's T-Shirt | Apparel | 6 color variants |
+  | 28 | Women's Sweatshirt | Apparel | 3 color variants |
+  | 29 | Jewelry Gift Box | Standard | 1 |
+  | 30 | Jewelry Polishing Cloth | Standard | 1 |
+  | 31 | Jewelry Travel Pouch | Standard | 1 |
+  | 32 | Product Builder Example | Builder | Configurable |
+  | 33 | Donation / Make An Offer Example | Donation | Open price |
+  | 34 | Luxury Watch Box | Standard | 1 |
+</Accordion>
+
+### Additional Demo Data
+
+Beyond products, brands, and categories, the seeder also populates:
+
+<CardGroup cols={2}>
+  <Card title="Inventory Records" icon="warehouse">
+    Stock levels are created for every product variant, so inventory tracking works out of the box during your demo exploration.
+  </Card>
+
+  <Card title="Event Records" icon="calendar">
+    Each event-type variant (seminars, workshops) includes a start time, end time, location, and a colour label for visual scheduling.
+  </Card>
+
+  <Card title="Product Attributes" icon="list">
+    Multi-variant products (apparel, events) include properly configured product attributes (e.g. colour, size) to demonstrate the variant selection UI.
+  </Card>
+
+  <Card title="CDN Product Images" icon="image">
+    All 34 products have professional images served directly from the Site Store Pro demo CDN. No local image files are required.
+
+    ```text
+    https://d23w3zagfzgqcb.cloudfront.net/demo/
+    ```
+  </Card>
+
+  <Card title="Cross-Selling Relationships" icon="arrow-right-arrow-left">
+    **36 cross-selling relationships** are pre-configured across the product catalogue, demonstrating the "You may also like" feature on product pages.
+  </Card>
+</CardGroup>
+
+---
+
+## Default Login Credentials
+
+The base database seed (run during installation) also creates these demo user accounts:
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@support.local` | `SampleUser12345#` |
+| Agent / Team Member | `agent@support.local` | `SampleUser12345#` |
+| Customer | `user1@example.com` | `SampleUser12345#` |
+
+<Warning>
+  These are shared demo credentials published in this documentation. **Change all default passwords before making your store publicly accessible.** Go to **Admin → Users**, edit each account, and set a strong, unique password.
+</Warning>
+
+---
+
+## How to Seed the Demo Store
+
+<Steps>
+  <Step title="Ensure Migrations Are Up to Date">
+    If you haven't already run your database migrations, do so now. If you ran `migrate:fresh --seed` during installation, you can skip this step.
+
+    ```bash
+    php artisan migrate
+    ```
+  </Step>
+  <Step title="Run the Demo Store Seeder">
+    ```bash
+    php artisan db:seed --class=DemoStoreSeeder
+    ```
+
+    The seeder will insert all 34 products, 5 brands, 10 categories, inventory records, event records, product attributes, CDN image references, and cross-selling relationships.
+  </Step>
+  <Step title="Log in and Explore">
+    Navigate to your Site Store Pro installation and log in with the admin credentials:
+
+    | Field | Value |
+    | --- | --- |
+    | URL | `/admin` |
+    | Email | `admin@support.local` |
+    | Password | `SampleUser12345#` |
+
+    Browse **Admin → Products**, **Admin → Orders**, and the public storefront to explore what's been loaded.
+  </Step>
+</Steps>
+
+<Note>
+  The `DemoStoreSeeder` is **fully idempotent** — it is safe to run multiple times. On each run, it checks the `seo_slug` of each product before inserting; any product that already exists is silently skipped. You will never end up with duplicate demo products.
+</Note>
+
+<Tip>
+  The seeder does **not** copy any image files to your server. All product images are referenced as CDN URLs pointing to `https://d23w3zagfzgqcb.cloudfront.net/demo/`. Your store needs an internet connection for images to display, but no local storage space is consumed.
+</Tip>
+
+<Note>
+  The Demo Store seeder only touches product-related data. It does **not** modify or create orders, user accounts, CMS pages, store settings, or any other non-product data.
+</Note>
+
+---
+
+## How to Purge Demo Content
+
+When you are ready to go live, purge all demo data through the admin panel. No command line access is required.
+
+<Steps>
+  <Step title="Log in to the Admin Panel">
+    Log in at `/admin` using your administrator account.
+  </Step>
+  <Step title="Navigate to Settings">
+    In the admin sidebar, click **Settings**.
+  </Step>
+  <Step title="Locate the Demo Store Banner">
+    If demo content has been seeded, an **amber banner** reading **"Demo Store Content is Active"** appears at the top of the Settings page.
+
+    <Note>
+      If you have never run `DemoStoreSeeder`, this banner is completely invisible. The Purge button does not appear on stores with no demo content.
+    </Note>
+  </Step>
+  <Step title="Click 'Purge Demo Content'">
+    Inside the amber banner, click the red **Purge Demo Content** button.
+  </Step>
+  <Step title="Confirm the Deletion">
+    A confirmation modal will appear listing everything that will be permanently deleted:
+
+    - All 34 demo products and their variants
+    - All demo product images
+    - All demo inventory records
+    - All demo event records
+    - All demo product attributes
+    - All 5 demo brands
+    - All 10 demo categories
+    - All 36 demo cross-selling relationships
+
+    Click **Yes, Delete All Demo Content** to proceed.
+  </Step>
+  <Step title="Purge Complete">
+    The purge runs immediately. The amber **"Demo Store Content is Active"** banner disappears, confirming that all demo data has been removed. Your store is now clean and ready for real products.
+  </Step>
+</Steps>
+
+<Warning>
+  The purge is **permanent and irreversible** from the admin UI. Once you click "Yes, Delete All Demo Content", all demo products, categories, brands, and related records are hard-deleted from the database. You cannot undo this action — only re-seeding can restore demo content.
+
+  Any products, brands, categories, or variants you created yourself are completely safe — the purge only removes content that was loaded by the Demo Store seeder.
+</Warning>
+
+---
+
+## Re-Seeding After a Purge
+
+If you purge the demo content and later want to restore it (for example, to demo the platform to a new team member), simply re-run the seeder:
+
+```bash
+php artisan db:seed --class=DemoStoreSeeder
+```
+
+Because the seeder is idempotent and checks `seo_slug` for existing records before inserting, this is safe to run at any time on a live store — only the missing demo products will be re-inserted, and your real store data is never touched.

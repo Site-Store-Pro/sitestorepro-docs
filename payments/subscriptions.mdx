@@ -1,0 +1,169 @@
+---
+title: "Subscription Billing: Stripe and Paddle Setup Guide"
+sidebarTitle: "Subscriptions"
+description: "Set up subscription variants in Site Store Pro with Stripe or Paddle. Configure billing intervals, free trials, mixed-cart policy, and lifecycle webhooks."
+---
+
+Any product variant in Site Store Pro can be configured as a recurring subscription by linking it to a Stripe or Paddle Price ID, or by enabling automatic Stripe product creation. This page covers how subscription variants are detected, the mixed-cart policy, checkout routing, the database schema, and the webhook events that drive subscription lifecycle management.
+
+## Overview
+
+Subscription billing in Site Store Pro is configured at the **variant level**. Any product variant can be turned into a recurring subscription by linking it to a gateway Price ID or enabling automatic Stripe product creation.
+
+---
+
+## How a Variant Becomes a Subscription
+
+A variant is treated as a subscription when any gateway price ID is configured, or when `create_new_stripe_product` is enabled:
+
+```php
+// Returns true if any gateway price ID is configured OR create_new_stripe_product is enabled
+public function isSubscriptionVariant(): bool
+{
+    return !empty($this->stripe_sandbox_price_id)
+        || !empty($this->stripe_live_price_id)
+        || !empty($this->paddle_sandbox_price_id)
+        || !empty($this->paddle_live_price_id)
+        || (int) $this->create_new_stripe_product === 1;
+}
+```
+
+The checkout router calls `isSubscriptionVariant()` on every item in the cart to decide whether to route to `createSubscription()` or `createPaymentIntent()`.
+
+---
+
+## Admin Configuration
+
+Navigate to **Admin → Products → Edit Product → Prices & Variants → Open or Create a variant → Payment Processor IDs section**.
+
+### Paddle
+
+Enter `pri_sandbox_…` in the sandbox field and `pri_…` in the live field. Leave both blank for a custom-amount one-time charge.
+
+### Stripe
+
+<Tabs>
+  <Tab title="Use Existing Price IDs">
+    Enter the Price IDs you already created in the **Stripe Dashboard** (Products → Prices).
+
+    | Field | Example Value |
+    | --- | --- |
+    | Stripe Sandbox Price ID | `price_1ABCtest…` |
+    | Stripe Live Price ID | `price_1ABClive…` |
+
+    Use this when you want full control over the Stripe product catalog.
+  </Tab>
+  <Tab title="Auto-Create Stripe Product">
+    Enable **"Create new Stripe product"** to have the platform automatically create a Stripe Product and recurring Price at the time of the first checkout.
+
+    Additional options become available:
+
+    | Option | Values |
+    | --- | --- |
+    | Billing Interval | `Monthly`, `Yearly`, or `Weekly` |
+    | Free Trial | Toggle ON/OFF |
+    | Trial Days | Number of days (integer) |
+
+    Use this for rapid setup without pre-configuring anything in the Stripe Dashboard.
+  </Tab>
+</Tabs>
+
+---
+
+## Mixed-Cart Policy
+
+<Warning>
+  Subscription items and regular (one-time) items **cannot be combined in the same cart**. This is enforced at cart-add time with a user-facing error message. The customer must remove the conflicting item before proceeding.
+</Warning>
+
+This restriction exists because subscription checkout routes through a different gateway method (`createSubscription` vs `createPaymentIntent`) and requires a single-intent payment flow.
+
+---
+
+## Checkout Routing (Automatic)
+
+The checkout system automatically detects subscription variants and routes to the correct gateway method:
+
+```text
+Cart scan → subscription variant found?
+  YES → Stripe: createSubscription()  |  Paddle: createTransaction(price_id=...)
+  NO  → Stripe: createPaymentIntent() |  Paddle: createTransaction(custom amount)
+```
+
+### Stripe Subscription Creation Flow
+
+<Steps>
+  <Step title="Resolve or Create Stripe Customer">
+    The platform looks up `users.stripe_customer_id`. If none exists, a new Stripe Customer is created and the ID is stored on the user record for future use.
+  </Step>
+  <Step title="Select Price ID">
+    - If `stripe_sandbox_price_id` or `stripe_live_price_id` is set → use that Price ID directly.
+    - If `create_new_stripe_product = 1` → create a new Stripe Product and recurring Price on-the-fly using the variant's configured interval.
+  </Step>
+  <Step title="Apply Trial Period">
+    If `stripe_trial_enabled = 1`, the subscription is created with `trial_period_days` set to the configured value.
+  </Step>
+  <Step title="Return client_secret">
+    The `client_secret` from the subscription's **latest invoice's PaymentIntent** is returned to the frontend, where Stripe Elements completes the payment confirmation.
+  </Step>
+</Steps>
+
+---
+
+## Schema Reference
+
+The following columns are added to the `product_variants` table to support subscription billing:
+
+| Column | Type | Default | Description |
+| --- | --- | --- | --- |
+| `paddle_sandbox_price_id` | `varchar(100)` | `null` | Paddle Test Price ID (e.g. `pri_sandbox_…`) |
+| `paddle_live_price_id` | `varchar(100)` | `null` | Paddle Live Price ID (e.g. `pri_…`) |
+| `stripe_sandbox_price_id` | `varchar(100)` | `null` | Stripe Test Price ID (e.g. `price_1…test`) |
+| `stripe_live_price_id` | `varchar(100)` | `null` | Stripe Live Price ID (e.g. `price_1…live`) |
+| `create_new_stripe_product` | `tinyint` | `0` | `1` = auto-create Stripe Product \+ Price at checkout |
+| `stripe_billing_interval` | `varchar(10)` | `month` | `month`, `year`, or `week` |
+| `stripe_trial_enabled` | `tinyint` | `0` | `1` = apply free trial period |
+| `stripe_trial_days` | `int` | `0` | Number of free trial days |
+
+---
+
+## Webhook Handling for Subscriptions
+
+Subscription lifecycle events are delivered via webhooks. Register both endpoints as described in the [Webhooks Reference](/payments/webhooks).
+
+### Stripe (`POST /webhooks/stripe`)
+
+| Event | Purpose |
+| --- | --- |
+| `customer.subscription.created` | Grant subscription access |
+| `customer.subscription.updated` | Handle plan changes |
+| `customer.subscription.deleted` | Revoke access on cancellation |
+| `invoice.payment_succeeded` | Confirm recurring renewal |
+| `invoice.payment_failed` | Trigger dunning/retry |
+
+### Paddle (`POST /webhooks/paddle`)
+
+| Event | Purpose |
+| --- | --- |
+| `subscription.created` | Grant access |
+| `subscription.updated` | Handle plan modifications |
+| `subscription.canceled` | Revoke access |
+| `subscription.payment_failed` | Dunning |
+
+<Info>
+  All subscription events are currently **logged**. To implement entitlement grants, access revocation, or dunning emails, use the [Extension Override](/payments/stripe#extension-override) pattern for Stripe and the [Extension Override](/payments/paddle#extension-override) pattern for Paddle.
+</Info>
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Stripe Setup" icon="stripe" href="/payments/stripe">
+    Configure Stripe API keys and the Stripe Customer ID persistence behavior.
+  </Card>
+
+  <Card title="Paddle Setup" icon="credit-card" href="/payments/paddle">
+    Configure Paddle Price IDs and dynamic non-catalog fallback pricing.
+  </Card>
+</CardGroup>

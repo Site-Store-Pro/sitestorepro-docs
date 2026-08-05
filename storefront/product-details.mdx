@@ -1,0 +1,259 @@
+---
+title: "Product Detail Pages: Variants, Gallery, and Add to Cart"
+sidebarTitle: "Product Details"
+description: "How Site Store Pro product pages work: choose a layout, select variants, use hover zoom or lightbox, add gift wrapping, and see cross-selling recommendations."
+---
+
+## Overview
+
+Product detail pages in Site Store Pro are powered by Alpine.js and deliver a fully interactive shopping experience — including hover zoom, a lightbox gallery, dynamic variant selectors, live price updates, and configurable product customization forms — all without a full page reload.
+
+**Route:** `GET /items/{seo_slug}`
+
+---
+
+## Breadcrumb Navigation
+
+Every product page displays a **full recursive ancestor breadcrumb trail** built from the category hierarchy. The trail always begins with "Shop" and drills down through every parent category to the product name:
+
+```text
+Shop / Electronics / Laptops / MacBook Pro
+```
+
+<Note>
+  Breadcrumbs are generated dynamically from the category tree. If you restructure your category hierarchy, breadcrumbs update automatically on next page load — no manual changes needed.
+</Note>
+
+### Quick Admin Edit Shortcut
+
+Users with the **Admin role** see an **"Edit Product (Admin)"** button displayed next to the breadcrumbs. Clicking it navigates directly to the product's edit page in the Admin panel, enabling fast corrections without leaving the storefront.
+
+---
+
+## Image Gallery
+
+The product gallery is built with Alpine.js and supports hover zoom, lightbox, and seamless variant image syncing.
+
+### Hover Zoom (Lens Magnifier)
+
+When a customer hovers over the main product image, a **200% resolution zoomed lens** follows the cursor. The magnified region is rendered at double the display resolution for sharp detail on high-DPI screens.
+
+### Click-to-Open Lightbox Modal
+
+Clicking the main image opens a **full-screen frosted-glass lightbox modal** with:
+
+- Previous / Next navigation arrows
+- Custom `image_alt` tag displayed as accessible alt text
+- Custom `zoom_label` caption displayed below the image in the lightbox
+- Keyboard navigation support (← → arrow keys, Esc to close)
+
+### Thumbnail Strip
+
+A row of thumbnails is displayed below the primary image. Clicking a thumbnail:
+
+1. Swaps the main image to the selected thumbnail
+2. Updates the **active variant** to match
+3. Refreshes the displayed price and available options
+
+<Info>
+  The thumbnail strip is **automatically hidden** when a product has only one image total — keeping the layout clean for single-image products.
+</Info>
+
+Thumbnails are center-aligned below the primary image.
+
+### Variant Color Deduplication
+
+The thumbnail strip enforces **one unique image per color/shade/tint**. If a product has a "Midnight Black" color in sizes S, M, and L — all sharing the same photo — only one thumbnail appears for that color. Switching between sizes of the same color does **not** reset or re-render the gallery.
+
+### Variant–Gallery Sync
+
+Selecting any variant option (color swatch, size button, etc.) automatically:
+
+- Swaps the main image to the first image for that variant
+- Updates the active thumbnail highlight
+- Refreshes the price display, including any `variant_fee` surcharge
+
+---
+
+## Product Page Layouts
+
+Admins can choose one of **5 layout options** per product, set under:
+
+**Admin → Products → Edit → Advanced Settings → Product Page Layout Option**
+
+<AccordionGroup>
+  <Accordion title="1. Right Side Images (Default)">
+    The standard two-column layout.
+
+    | Column | Content | Width |
+    | --- | --- | --- |
+    | Left | Buy box (title, price, selectors, add to cart) | `col-span-5` |
+    | Right | Image gallery | `col-span-7` |
+  </Accordion>
+
+  <Accordion title="2. Left Side Images">
+    Mirrors the default — gallery moves to the left column and the buy box shifts right. Useful for products where imagery should lead the browsing experience.
+
+    | Column | Content |
+    | --- | --- |
+    | Left | Image gallery |
+    | Right | Buy box |
+  </Accordion>
+
+  <Accordion title="3. Right Side Images With Large Video Player Space Below">
+    Same two-column layout as the default for the upper section. The product video is **pulled out of the columns** and rendered full-width below both, giving video content maximum visual impact.
+  </Accordion>
+
+  <Accordion title="4. Centered Layout With Images On Top">
+    A single-column centered layout ideal for editorial-style product pages.
+
+    | Section | Constraint |
+    | --- | --- |
+    | Gallery | Centered, `max-w-3xl` |
+    | Buy box | Centered below, `max-w-2xl` |
+  </Accordion>
+
+  <Accordion title="5. Centered Layout With Large Video Player On Top">
+    Video is the hero element. Ideal for product launches or demonstration-heavy items.
+
+    | Section | Constraint |
+    | --- | --- |
+    | Video player | `max-w-4xl`, featured at top |
+    | Gallery \+ buy box | Below video |
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Variant Selectors
+
+### Dynamic Drill-Down Selectors
+
+When **Use Dependent Selectors** (`dependent_variants`) is enabled for a product, variant selection becomes a guided, progressive flow:
+
+1. **Color** is selected first — all available colors are shown
+2. **Size** options are then filtered to only combinations that are actually in stock for the chosen color
+
+This eliminates "add to cart → out of stock" frustration by only presenting valid combinations.
+
+### Reactive Price & Fee Updates
+
+Every variant can carry a `variant_fee` — an additional charge on top of the base product price (e.g., for a premium finish, a larger size, or an engraved option). The displayed price updates **instantly** when a variant is selected, showing:
+
+- Base price
+- `variant_fee` (if any)
+- Combined total price
+- Strikethrough original price (if a discount is active)
+
+---
+
+## Quantity & Server-Side Validation
+
+The quantity input accepts integers between **1 and 10,000**. Non-numeric values and out-of-range inputs are sanitized server-side before the add-to-cart action is processed.
+
+---
+
+## Product Customization Forms (Product Builder)
+
+Admins can attach a fully custom form to any product, enabling shoppers to specify personalizations before adding to cart. Field types available:
+
+| Field Type | Use Case |
+| --- | --- |
+| Text input | Short name, monogram, custom text |
+| Textarea | Longer instructions or notes |
+| Select dropdown | Choose from predefined options |
+| Radio group | Single-choice option buttons |
+| Checkbox | Optional add-on toggle |
+| Multi-select checkboxes | Multiple add-ons from a list |
+
+Pricing rules for customization forms can be set independently for **retail** and **wholesale** customers.
+
+---
+
+## Discounts & Pricing Display
+
+When a product or variant has an active discount, the product page displays:
+
+- The **regular (original) price** with a strikethrough
+- The **sale price** prominently alongside
+
+This strikethrough display is driven entirely by the active discount record — no manual price overrides needed.
+
+---
+
+## Gift Wrapping & Personalization
+
+If gift wrapping is enabled for a product, a **checkbox** appears in the buy box. Checking it reveals a **text area** where the customer can enter a gift message or engraving text.
+
+<Info>
+  The gift wrap fee is added as a **separate line item** on the cart, keeping the product price and the wrapping charge clearly itemized in the order summary.
+</Info>
+
+---
+
+## "You May Also Like" Carousel
+
+Below the product description, Site Store Pro displays a **horizontally scrollable carousel** of related products. Related products are drawn from the same category and/or brand as the current product.
+
+---
+
+## Cross-Selling
+
+Admins can attach cross-sell items to any product. Cross-sells have two display modes, controlled per cross-sell record:
+
+| Setting | Behavior |
+| --- | --- |
+| `display_on_item_view = true` | Cross-sell items appear **below the product description** on the product detail page |
+| `display_on_post_cart = true` | After the customer clicks "Add to Cart", they are **redirected to `/cart/recommendations/{productId}`** instead of seeing the standard cart modal |
+
+The post-cart cross-sell page presents the recommended items before the customer proceeds to checkout, maximizing upsell opportunity at the peak moment of purchase intent.
+
+---
+
+## Advanced Per-Product Settings
+
+These options are found under **Admin → Products → Edit → Advanced Settings**:
+
+<AccordionGroup>
+  <Accordion title="Max 1 Per Order (max_qty)">
+    When enabled, the quantity selector is disabled and the quantity is locked at **1**. Use this for limited-edition items, event tickets, or one-per-customer offers.
+  </Accordion>
+
+  <Accordion title="Redirect to Checkout (checkout_redirect)">
+    Bypasses the cart entirely. After clicking "Add to Cart", the customer is sent **directly to checkout**. Useful for fast-purchase single items.
+  </Accordion>
+
+  <Accordion title="Standalone Purchase (standalone_purchase)">
+    Implies `checkout_redirect`. Additionally **blocks mixing** this product with other items in the same cart session. Ideal for subscriptions or special order items that require isolated fulfillment.
+  </Accordion>
+
+  <Accordion title="Use Dependent Selectors (dependent_variants)">
+    Enables the progressive drill-down variant flow — Color first, then Size filtered to valid combinations for that color.
+  </Accordion>
+
+  <Accordion title="Hide Inventory Levels (hide_inventory_levels)">
+    Suppresses the "X in stock" indicator on the product page. The item remains purchasable; customers simply don't see the inventory count.
+  </Accordion>
+</AccordionGroup>
+
+---
+
+## Quick Reference
+
+<CardGroup cols={2}>
+  <Card title="Product Detail Route" icon="box">
+    `GET /items/{seo_slug}`
+  </Card>
+
+  <Card title="Post-Cart Cross-Sells" icon="cart-shopping">
+    `GET /cart/recommendations/{productId}`
+  </Card>
+
+  <Card title="Admin Edit Shortcut" icon="pen-to-square">
+    Visible to Admin role only — button next to breadcrumbs
+  </Card>
+
+  <Card title="Dependent Variants" icon="list-tree">
+    Enable per-product via `dependent_variants` in Advanced Settings
+  </Card>
+</CardGroup>

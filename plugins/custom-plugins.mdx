@@ -1,0 +1,255 @@
+---
+title: "Building and Registering Custom Plugins for Site Store Pro"
+sidebarTitle: "Custom Plugins"
+description: "Build display or shipping plugins for Site Store Pro. Create a plugin.json manifest and PHP class, drop them in /plugins/, and they auto-discover on next boot."
+---
+
+## Overview
+
+Site Store Pro supports two registration paths for custom plugins:
+
+| Type | Location | Discovery Method |
+| --- | --- | --- |
+| **Drop-in** | `/plugins/my-plugin/` | Auto-discovered on every boot by scanning for `plugin.json` |
+| **Built-in** | `app/Plugins/` | Registered during platform boot \+ seeded via `PluginSeeder` |
+
+Drop-in plugins are the recommended approach for third-party and custom integrations — no framework files need to be modified.
+
+---
+
+## Drop-in Plugin Structure
+
+```text
+plugins/
+  my-custom-plugin/
+    plugin.json          ← Required manifest
+    MyCustomPlugin.php   ← PHP class
+```
+
+Both files must be present. The directory name can be anything, but it must be unique within `/plugins/`.
+
+---
+
+## `plugin.json` Manifest
+
+The manifest defines the plugin's identity and its configurable settings:
+
+```json
+{
+  "class": "MyCustomPlugin",
+  "name": "My Custom Plugin",
+  "version": "1.0",
+  "type": "display",
+  "shortcode": "my-custom",
+  "description": "A drop-in custom plugin",
+  "author": "Your Name",
+  "options": [
+    {
+      "field_name": "api_key",
+      "field_label": "API Key",
+      "field_type": "input",
+      "field_required": "yes",
+      "sort_order": 10,
+      "field_default_value": ""
+    }
+  ]
+}
+```
+
+### Manifest Fields
+
+| Field | Required | Description |
+| --- | --- | --- |
+| `class` | Yes | PHP class name (without namespace) |
+| `name` | Yes | Human-readable plugin name shown in Admin |
+| `version` | Yes | Semantic version string |
+| `type` | Yes | `display`, `shipping`, or `email` |
+| `shortcode` | Yes (display) | Slug used in `[plugin:slug]` shortcodes |
+| `description` | No | Short description shown in Admin |
+| `author` | No | Author name |
+| `options` | No | Array of `plugin_options` rows (see below) |
+
+### Options Array Fields
+
+Each entry in `options` creates a row in `plugin_options` and generates a form field in the Admin Settings panel:
+
+| Field | Description |
+| --- | --- |
+| `field_name` | Setting key used in `getSetting('field_name')` |
+| `field_label` | Label text shown in the Admin form |
+| `field_type` | `input`, `textarea`, `select`, `toggle`, `color`, etc. |
+| `field_required` | `"yes"` or `"no"` |
+| `sort_order` | Integer controlling field ordering in Admin |
+| `field_default_value` | Default value if none is saved |
+
+---
+
+## Display Plugin PHP Class
+
+Implement `DisplayPlugin` and return an HTML string from `render()`:
+
+```php
+<?php
+namespace App\Plugins\Display;
+
+use App\Models\Plugin;
+use App\Plugins\Contracts\DisplayPlugin;
+
+class MyPlugin implements DisplayPlugin
+{
+    public function slug(): string { return 'my-plugin'; }
+    public function name(): string { return 'My Custom Plugin'; }
+
+    public function render(array $params, Plugin $plugin): string
+    {
+        $mySetting = $plugin->getSetting('my_setting', 'default_value');
+        return view('plugins.display.my-plugin', compact('params', 'mySetting'))->render();
+    }
+}
+```
+
+- **`slug()`** — must match the `shortcode` field in `plugin.json`
+- **`render()`** — receives the parsed shortcode parameters as `$params` and the plugin's DB model as `$plugin`
+- Use `$plugin->getSetting('key', 'default')` to read settings saved by the merchant in Admin
+
+---
+
+## Shipping Plugin PHP Class
+
+Shipping plugins implement `ShippingPlugin` and return a flat array of rate options:
+
+```php
+return [
+    ['label' => 'Standard Rate', 'rate' => 12.50, 'days' => 3, 'code' => 'MY_CODE'],
+    ['label' => 'Express Rate',  'rate' => 24.00, 'days' => 1, 'code' => 'MY_EXPRESS'],
+];
+```
+
+Each rate entry must include:
+
+| Key | Type | Description |
+| --- | --- | --- |
+| `label` | string | Display name shown at checkout |
+| `rate` | float | Shipping cost in the store currency |
+| `days` | int | Estimated transit days |
+| `code` | string | Internal identifier written to the order record |
+
+The `ShippingContext` object passed to your `getRates(ShippingContext $context)` method contains origin/destination ZIP codes, country, package weight, and declared value.
+
+---
+
+## Discovery Flow
+
+When Site Store Pro boots, `PluginManager::discoverExternalPlugins()` runs automatically:
+
+<Steps>
+  <Step title="Scan /plugins/ directory">
+    Every subdirectory of `/plugins/` is checked for a `plugin.json` file.
+  </Step>
+  <Step title="Load the PHP class">
+    The matching PHP class file is loaded via `require_once`.
+  </Step>
+  <Step title="Sync the database">
+    `syncExternalPlugin()` upserts the `plugins` DB record and all `plugin_options` rows based on the manifest. Existing merchant-saved settings are preserved.
+  </Step>
+  <Step title="Register with PluginManager">
+    A class instance is registered with the `PluginManager` singleton, making it available for rendering and rate queries.
+  </Step>
+</Steps>
+
+<Info>
+  The plugin appears in the Admin Panel immediately on the **next page load** — no Artisan commands or server restarts are needed.
+</Info>
+
+---
+
+## Built-in Plugin Registration
+
+Drop-in plugins in `/plugins/` are recommended for all custom work. If you are building a plugin that ships as part of your own platform fork (placed in `app/Plugins/`), use the following steps:
+
+### Step 1 — Create the PHP class
+
+```text
+app/Plugins/Display/MyPlugin.php
+```
+
+The class must implement `DisplayPlugin` (or `ShippingPlugin`) as shown above.
+
+### Step 2 — Register the plugin class
+
+```php
+$manager->register(\App\Plugins\Display\MyPlugin::class);
+```
+
+### Step 3 — Seed the database record
+
+Add to `PluginSeeder.php`:
+
+```php
+$plugin = Plugin::updateOrCreate(
+    ['filename' => 'my_plugin'],
+    [
+        'name'                => 'My Custom Plugin',
+        'shortcode'           => 'my-plugin',
+        'type'                => 'display',
+        'author'              => 'Your Name',
+        'version'             => '1.0',
+        'install_type'        => 1,
+        'activation_required' => 'no',
+        'activation_status'   => 1,
+        'description'         => 'Short description',
+    ]
+);
+
+PluginOption::create([
+    'plugin_id'           => $plugin->id,
+    'field_name'          => 'my_setting',
+    'field_label'         => 'My Setting Label',
+    'field_type'          => 'input',
+    'field_required'      => 'no',
+    'sort_order'          => 10,
+    'field_default_value' => 'default',
+]);
+```
+
+Then run:
+
+```bash
+php artisan db:seed --class=PluginSeeder
+```
+
+<Info>
+  Re-running the seeder is safe — all records use `updateOrCreate`. Existing merchant-saved settings are not affected.
+</Info>
+
+---
+
+## Search Index Rebuild
+
+If your plugin contributes content that should be searchable via the Live Search plugin, rebuild the search index after installation:
+
+```bash
+# Standard rebuild
+php artisan search:rebuild-index
+
+# Force full rebuild even if indexes are locked
+php artisan search:rebuild-index --force
+```
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Plugin System" icon="puzzle-piece" href="/plugins/plugin-system">
+    Plugin discovery, Admin Panel, shortcode syntax, and PluginManager API.
+  </Card>
+
+  <Card title="Display Plugins" icon="image" href="/plugins/display-plugins">
+    Reference for built-in display plugins and their shortcode parameters.
+  </Card>
+
+  <Card title="Shipping Plugins" icon="truck" href="/plugins/shipping-plugins">
+    Built-in FedEx, UPS, and USPS shipping plugins for comparison.
+  </Card>
+</CardGroup>

@@ -1,0 +1,160 @@
+---
+title: "Stripe Payments: Setup and Configuration for Site Store Pro"
+sidebarTitle: "Stripe"
+description: "Enable Stripe in Site Store Pro for payments and subscriptions. Add .env API keys, register the webhook endpoint, and override behavior using an extension file."
+---
+
+Stripe is a built-in payment processor in Site Store Pro (processor ID 1) supporting one-time payments and recurring subscriptions via Stripe Elements. Setup requires installing the Stripe PHP SDK, adding your API keys to `.env`, and registering a webhook endpoint in the Stripe Dashboard.
+
+## Setup
+
+### Step 1 — Install the SDK
+
+```bash
+composer require stripe/stripe-php
+```
+
+### Step 2 — Add Credentials to `.env`
+
+```ini
+# Production
+STRIPE_PUBLISHABLE_KEY=pk_live_xxxxxxxxxxxxxxxxxxxx
+STRIPE_SECRET_KEY=sk_live_xxxxxxxxxxxxxxxxxxxx
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxx
+
+# Sandbox / Test
+STRIPE_SANDBOX_PUBLISHABLE_KEY=pk_test_xxxxxxxxxxxxxxxxxxxx
+STRIPE_SANDBOX_SECRET_KEY=sk_test_xxxxxxxxxxxxxxxxxxxx
+```
+
+<Info>
+  The webhook secret is required for both sandbox and production environments. See [Webhook Registration](#webhook-registration) below.
+</Info>
+
+### Step 3 — Activate in Admin
+
+Navigate to **Admin → Checkout → Processors**, set **Stripe** as the Primary processor, and toggle **Production** ON or OFF depending on your environment.
+
+---
+
+## Stripe-Specific Options
+
+The **Stripe Address Requirement Toggle** is found in the Processors list under the **Stripe Specific Settings** card. It controls which Stripe Elements are rendered at checkout.
+
+<Tabs>
+  <Tab title="Disabled — Simple Payment Form">
+    Renders a `PaymentElement` with billing address collection set to `never`.
+
+    - Shows only payment method fields (card number, expiry, CVC)
+    - Fastest checkout experience
+    - Use when you collect billing details separately or don't need them
+  </Tab>
+  <Tab title="Enabled — Forced Billing Address Form">
+    Renders a `PaymentElement` **plus** an `AddressElement` (mode: `'billing'`).
+
+    - Forces full billing address with **Google Maps autocomplete**
+    - Use when you need verified billing addresses for tax or compliance purposes
+  </Tab>
+</Tabs>
+
+---
+
+## Extension Override
+
+To customize Stripe behavior without editing the built-in class, create an extension file. The platform auto-detects it — no changes to `config/payment_processors.php` are needed.
+
+**File location:**
+
+```text
+payment-processors/stripe/StripeProcessorExtension.php
+```
+
+```php
+<?php
+namespace PaymentProcessors\Stripe;
+
+use App\Services\Payments\Processors\StripeProcessor as Base;
+
+class StripeProcessorExtension extends Base
+{
+    // Override only the methods you need — everything else is inherited.
+
+    public function createPaymentIntent(float $amount, string $currency = 'usd'): array
+    {
+        $result = parent::createPaymentIntent($amount, $currency);
+        // Add custom logging, metadata, etc.
+        return $result;
+    }
+}
+```
+
+<Tip>
+  The `payment-processors/` directory sits outside `app/` by design. Its contents are never overwritten by platform updates.
+</Tip>
+
+---
+
+## Webhook Registration
+
+<Steps>
+  <Step title="Register the endpoint in Stripe Dashboard">
+    Go to **Stripe Dashboard → Developers → Webhooks → Add endpoint** and enter:
+
+    ```text
+    https://yourdomain.com/webhooks/stripe
+    ```
+  </Step>
+  <Step title="Set the webhook secret in .env">
+    ```ini
+    STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxx
+    ```
+  </Step>
+  <Step title="Verify events are received">
+    Use the Stripe Dashboard's "Send test webhook" feature to confirm your endpoint is reachable and the signature is verified correctly.
+  </Step>
+</Steps>
+
+Signature verification uses `Stripe\Webhook::constructEvent()` with the `Stripe-Signature` header. All webhook routes are CSRF-exempt via the `webhooks/*` wildcard in `bootstrap/app.php`.
+
+### Handled Events
+
+| Event | Action |
+| --- | --- |
+| `payment_intent.succeeded` | Finds order by `authorization_code`, ensures status ≥ 1 (Open) |
+| `payment_intent.payment_failed` | Logs the failure |
+| `charge.refunded` | Sets order status to 3 (Refunded) |
+| `customer.created` | Stores `stripe_customer_id` on matching user |
+| `customer.subscription.created` | Extend for subscription entitlement grants |
+| `customer.subscription.updated` | Extend for plan changes |
+| `customer.subscription.deleted` | Extend for access revocation |
+| `invoice.payment_succeeded` | Extend for recurring renewals |
+| `invoice.payment_failed` | Extend for dunning/retry logic |
+
+<Info>
+  Subscription lifecycle events (`customer.subscription.*`, `invoice.*`) are currently **logged**. To act on these events — for example, granting or revoking subscription access — use the [Extension Override](#extension-override) pattern to add your business logic.
+</Info>
+
+---
+
+## Stripe Customer ID Persistence
+
+When a Stripe Subscription is created, the Stripe Customer ID is saved to `users.stripe_customer_id`. This ID is reused for:
+
+- Future subscription renewals (avoids duplicate customer records)
+- Webhook linkage (maps incoming events back to a Site Store Pro user)
+
+The Customer ID is saved automatically when the `customer.created` webhook event is received.
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Subscriptions" icon="rotate" href="/payments/subscriptions">
+    Configure Stripe Price IDs, billing intervals, and free trials for subscription variants.
+  </Card>
+
+  <Card title="Webhooks Reference" icon="webhook" href="/payments/webhooks">
+    Full webhook endpoint reference, signature verification details, and custom gateway setup.
+  </Card>
+</CardGroup>

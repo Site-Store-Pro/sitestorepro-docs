@@ -1,0 +1,214 @@
+---
+title: "Built-in Display Plugins: Shortcode and Parameter Guide"
+sidebarTitle: "Display Plugins"
+description: "Embed dynamic content in Site Store Pro pages with built-in display plugins: Slideshow, Featured Items, Cross-Sell List, Events Calendar, and Live Search."
+---
+
+## Overview
+
+Display plugins render dynamic HTML blocks inside CMS pages or product descriptions using **shortcodes**. All built-in display plugins are pre-installed and available immediately after running the plugin seeder.
+
+---
+
+## Slideshow Plugin
+
+**Shortcode:** `[plugin:slideshow-2026]`
+
+Slide data is managed at `/admin/slideshows` using the CMS Slideshow Builder. Each slideshow has its own ID.
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `id` | first active slideshow | Specific slideshow ID to display |
+| `nav` | `on` | Show prev/next arrows (`on` / `off`) |
+| `paging` | `on` | Show pagination dots (`on` / `off`) |
+| `autoplay` | `on` | Enable autoplay (`on` / `off`) |
+| `speed` | `4000` | Autoplay delay in milliseconds |
+
+### Admin Settings
+
+Access from **Admin → Plugins → Slideshow → Settings**:
+
+- **Live CSS** — dark CSS editor for custom styling applied on top of the default styles
+- **Default CSS** — read-only reference showing the built-in styles
+
+---
+
+## Featured Items Plugin
+
+**Shortcode:** `[plugin:featured-items]`
+
+### Marking Products as Featured
+
+Before using this plugin, mark products as featured in **Admin → Products → Edit → Advanced Settings → ★ Featured Item toggle → Save**.
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `display` | `grid` | Layout mode: `grid`, `list`, or `slider` |
+| `max` | `12` | Maximum number of products (1–100) |
+| `cols` | `4` | Grid columns: `2`, `3`, `4`, `5`, or `6` |
+| `sort` | `random` | Sort order: `random`, `newest`, or `name` |
+| `header` | _(blank)_ | Optional section heading |
+| `slides` | `4` | Visible cards at desktop (slider mode only) |
+| `nav` | `on` | Navigation arrows (slider mode only) |
+| `autoplay` | `on` | Auto-advance (slider mode only) |
+| `speed` | `4000` | Autoplay delay in ms (slider mode only) |
+
+### Examples
+
+```text
+[plugin:featured-items]
+[plugin:featured-items display=slider slides=4 header="Editor's Picks" autoplay=on speed=5000]
+[plugin:featured-items display=grid cols=3 max=6 sort=newest header="New Arrivals"]
+[plugin:featured-items display=list max=8 sort=name]
+```
+
+---
+
+## Cross-Sell List Plugin
+
+**Shortcode:** `[plugin:cross-sell-list product_id=X]`
+
+### Setting Up Cross-Sells
+
+Configure cross-sell relationships in **Admin → Products → Edit → Cross-Selling**. Use the live search field to add products.
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `product_id` | _(required)_ | Numeric ID of the source product |
+| `display` | `grid` | Layout mode: `grid`, `list`, or `slider` |
+| `max` | `12` | Maximum number of products |
+| `cols` | `4` | Grid columns |
+| `sort` | `sort_order` | Sort: `sort_order`, `newest`, or `name` |
+| `header` | _(blank)_ | Optional section heading |
+
+### Examples
+
+```text
+[plugin:cross-sell-list product_id=42]
+[plugin:cross-sell-list product_id=42 display=slider header="You Might Also Like" autoplay=on]
+[plugin:cross-sell-list product_id=42 display=grid cols=3 max=6 header="Frequently Bought Together"]
+```
+
+### Post-Cart Intermediary Page
+
+When a product has cross-sells configured with `display_on_post_cart = true`, adding that product to the cart **redirects to a recommendations page** at:
+
+```text
+/cart/recommendations/{productId}
+```
+
+This page presents cross-sell items before the customer proceeds to the cart, increasing average order value.
+
+---
+
+## Events Calendar Plugin
+
+**Shortcode:** `[plugin:events-calendar-2026]`
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `header` | `"Upcoming Events"` | Custom section heading |
+| `layout` | `month` | Display mode: `month`, `list`, or `grid` |
+| `max` | `50` | Maximum number of events |
+| `category` | _(blank)_ | Optional category slug filter |
+| `custom_css` | _(blank)_ | Custom CSS rules injected inline |
+
+### Display Modes
+
+<Tabs>
+  <Tab title="Month Grid">
+    A traditional 7-column monthly calendar with:
+
+    - **Prev / Next** month navigation buttons
+    - **Today** button to jump to the current date
+    - Color-coded event pills on calendar days
+
+    Clicking an event pill opens an interactive **glassmorphism modal** with full event details and a "Book Event Ticket" button linking to the product page.
+  </Tab>
+  <Tab title="Agenda List">
+    Chronological event rows, each displaying:
+
+    - Event image (thumbnail)
+    - Label pill (category/type badge)
+    - Date and time
+    - Location
+    - Price
+    - "Book Event" button
+
+    Clicking an event opens the same interactive modal.
+  </Tab>
+  <Tab title="Cards Grid">
+    A responsive 3-column grid of event cards, each with:
+
+    - Full-width image header
+    - Badge overlay (category/type)
+    - Call-to-action button
+
+    Clicking a card opens the event modal.
+  </Tab>
+</Tabs>
+
+---
+
+## Live Search Plugin
+
+**Shortcode:** `[plugin:live-search-2026]`
+
+Searches across all of the following content types simultaneously:
+
+- **Products**
+- **CMS Pages**
+- **Knowledge Base Articles**
+- **Customer Testimonials**
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `mode` | `input` | `input` (search bar with autocomplete) or `results` (full results page) |
+| `placeholder` | `"Search products..."` | Input placeholder text |
+| `button_label` | `"Search"` | Search button text |
+| `layout` | `list` | Results layout: `list` or `grid` (results mode only) |
+| `custom_css` | _(blank)_ | Custom CSS overrides injected inline |
+
+### Live Search API
+
+The plugin fetches results from a built-in JSON API endpoint:
+
+```text
+GET /api/live-search-api?q={query}
+```
+
+Response includes category badges, thumbnails, content snippets, and URLs for each result.
+
+### Pre-Seeded Search Page
+
+A search results page is pre-seeded at `/search` using:
+
+```text
+[plugin:live-search-2026 mode=results]
+```
+
+This page is ready to use immediately after installation with no additional configuration.
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Plugin System" icon="puzzle-piece" href="/plugins/plugin-system">
+    Plugin discovery, the Admin Panel, shortcode syntax, and PluginManager usage.
+  </Card>
+
+  <Card title="Custom Plugins" icon="code" href="/plugins/custom-plugins">
+    Build your own display plugin using the drop-in plugin system.
+  </Card>
+</CardGroup>

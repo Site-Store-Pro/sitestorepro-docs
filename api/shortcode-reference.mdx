@@ -1,0 +1,261 @@
+---
+title: "Site Store Pro Shortcode Reference: All Tags and Parameters"
+sidebarTitle: "Shortcodes"
+description: "All Site Store Pro shortcodes with examples — page, product, category and brand links, downloads, code embeds, CMS forms, and plugin blocks with parameters."
+---
+
+Shortcodes let you embed dynamic content — links, downloads, plugins, forms, and more — anywhere in CMS page bodies, sidebars, and product descriptions by writing a simple tag. Site Store Pro processes shortcodes through two independent pipelines; see [Shortcode Pipelines](/api/shortcode-pipelines) for how and where each shortcode resolves.
+
+---
+
+## Link Shortcodes
+
+Generate internal links to CMS pages, products, categories, and brands. Each shortcode accepts an optional `label` parameter to override the default anchor text.
+
+```text
+[page:{id}]                                 — link to CMS page
+[page:{id} label="Custom Text"]            — with custom anchor text
+
+[product:{id}]                              — link to product page
+[product:{id} label="Custom Text"]
+
+[category:{id}]                             — link to category page
+[category:{id} label="Custom Text"]
+
+[brand:{id}]                                — link to brand page
+[brand:{id} label="Custom Text"]
+```
+
+**Examples:**
+
+```text
+See our [page:12 label="Returns Policy"] for full details.
+
+Check out the [product:88 label="Pro Wireless Headphones"].
+
+Browse the [category:5 label="Audio Equipment"] collection.
+```
+
+<Note>
+  Link shortcodes are resolved by **Pipeline A** (the `ProcessShortcodes` middleware) and work in CMS page bodies, sidebars, product descriptions, list menu items, and footer layouts.
+</Note>
+
+---
+
+## List Menu Shortcode
+
+Embeds a complete list menu (nav list) by its ID. The list is rendered as a `<ul>/<li>` HTML structure with `<a>` tags.
+
+```text
+[list:{id}]                                 — embed entire list menu by ID
+```
+
+**Example:**
+
+```text
+[list:3]
+```
+
+This renders the full list menu with ID 3, including any nested `[download:N]` or `[plugin:slug]` shortcodes within list items — these are resolved automatically as part of list menu rendering.
+
+---
+
+## CMS Downloads
+
+Embed downloadable files with auto-detected rendering based on file type.
+
+```text
+[download:{id}]                             — embed download (auto-detects file type)
+[download:{id} label="Custom Link Text"]   — override the link or player label
+```
+
+### Auto-Detection Behavior
+
+| File Type | Rendered Output |
+| --- | --- |
+| Image (jpg, png, gif, webp, etc.) | Inline `<img>` tag |
+| Video (mp4, webm, etc.) | Video.js player |
+| Audio (mp3, ogg, wav, etc.) | Video.js audio player |
+| All other files | Styled download link with file icon |
+
+**Examples:**
+
+```text
+[download:14]
+
+[download:22 label="Download the Setup Guide (PDF)"]
+```
+
+---
+
+## Code & Video Embeds
+
+Embed YouTube videos, Vimeo videos, or raw HTML snippets stored as embed records in the admin panel.
+
+```text
+[code-embed:{id}]                           — embed by record ID
+[code-embed:{id} label="Label"]             — label parameter (reserved)
+```
+
+**Example:**
+
+```text
+[code-embed:7]
+```
+
+<Info>
+  Embed records are managed at `GET /admin/cms-embeds`. Each record stores either an iframe embed code (YouTube/Vimeo) or an arbitrary HTML snippet.
+</Info>
+
+---
+
+## CMS Forms
+
+Embed a contact, subscription, or custom form built in the admin panel.
+
+```text
+[cms-form id={id}]                          — embed form by record ID
+```
+
+**Example:**
+
+```text
+[cms-form id=4]
+```
+
+The form renders with its configured fields and submits to `POST /forms/{slug}/submit`. No custom JavaScript is required — the submission handler is included automatically.
+
+---
+
+## Plugin Shortcodes
+
+Embed any active display plugin by its slug. Parameters vary by plugin.
+
+```text
+[plugin:{slug}]                             — embed display plugin
+[plugin:{slug} param=value param2=value2]   — with parameters
+```
+
+### Built-in Plugin Shortcodes
+
+#### Slideshow
+
+```text
+[plugin:slideshow-2026]
+[plugin:slideshow-2026 id=3 nav=off]
+```
+
+| Parameter | Description |
+| --- | --- |
+| `id` | Slideshow record ID — defaults to the first active slideshow |
+| `nav` | `on` (default) or `off` — show/hide navigation arrows |
+
+---
+
+#### Featured Products
+
+```text
+[plugin:featured-items]
+[plugin:featured-items display=grid cols=3 max=6]
+```
+
+| Parameter | Options | Description |
+| --- | --- | --- |
+| `display` | `grid`, `slider` | Layout style |
+| `cols` | `2`, `3`, `4` | Number of columns (grid mode) |
+| `max` | integer | Maximum number of products to display |
+|  |  |  |
+
+---
+
+#### Cross-Sell Products
+
+```text
+[plugin:cross-sell-list product_id=42]
+[plugin:cross-sell-list product_id=42 display=slider]
+```
+
+| Parameter | Options | Description |
+| --- | --- | --- |
+| `product_id` | integer | Source product ID for cross-sell relationship lookup |
+| `display` | `grid`, `slider` | Layout style |
+
+---
+
+#### Events Calendar
+
+```text
+[plugin:events-calendar-2026]
+[plugin:events-calendar-2026 layout=list max=20]
+```
+
+| Parameter | Options | Description |
+| --- | --- | --- |
+| `layout` | `calendar`, `list` | Display mode |
+| `max` | integer | Maximum events shown (list mode) |
+
+---
+
+#### Live Search Widget
+
+```text
+[plugin:live-search-2026]
+[plugin:live-search-2026 mode=results layout=grid]
+```
+
+| Parameter | Options | Description |
+| --- | --- | --- |
+| `mode` | `bar`, `results` | `bar` = search input only; `results` = full results page display |
+| `layout` | `list`, `grid` | Results layout style |
+
+---
+
+#### Social Icons
+
+```text
+[plugin:social-icons-2026 size=md font_awesome=on]
+```
+
+| Parameter | Options | Description |
+| --- | --- | --- |
+| `size` | `sm`, `md`, `lg` | Icon size |
+| `font_awesome` | `on`, `off` | Use Font Awesome icon set |
+
+---
+
+## Blade Directives
+
+Blade directives are supported in CMS page bodies, sidebars, and product descriptions. They are processed by **Pipeline B** (`ContentParserService`) via `Blade::render()`.
+
+### Authentication-Conditional Content
+
+Show different content to logged-in vs. guest visitors:
+
+```blade
+@auth
+    <p>Welcome back, {{ auth()->user()->name }}!</p>
+@else
+    <p>Sign in to unlock wholesale rates.</p>
+@endauth
+```
+
+### Role-Based Content
+
+Show content only to users with a specific role:
+
+```blade
+@if(auth()->user()?->role_id == 2)
+    <p>You qualify for our wholesale discount program.</p>
+@endif
+```
+
+<Warning>
+  Blade directives are compiled with `Blade::render()` — this is powerful but means any valid Blade syntax will execute. Only use Blade directives in content you fully control. Do not render untrusted user-submitted content through this pipeline.
+</Warning>
+
+| Directive | Description |
+| --- | --- |
+| `@auth` / `@else` / `@endauth` | Conditionally show content to authenticated users |
+| `@if(...)` / `@endif` | Arbitrary PHP conditionals — supports role checks, feature flags, etc. |
+| `{{ expression }}` | Echo escaped output |
+| `{!! expression !!}` | Echo unescaped output |

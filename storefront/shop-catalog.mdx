@@ -1,0 +1,224 @@
+---
+title: "Browsing the Shop Catalog and Product Listings"
+sidebarTitle: "Shop Catalog"
+description: "Explore the Site Store Pro catalog: filter by category or brand, toggle grid/list view, set pagination, and enable the optional advanced search filtering panel."
+---
+
+## Overview
+
+The Site Store Pro shop catalog (`GET /shop`) is the primary product discovery surface for your customers. It combines real-time search, category and brand filtering, flexible pagination, and optional advanced filtering into a single, cohesive experience. All filters can work simultaneously and the resulting state is reflected in a shareable URL.
+
+---
+
+## Catalog Route & Live Search
+
+<Info>
+  The main catalog is available at `GET /shop`. All query parameters are sanitized server-side before any database interaction.
+</Info>
+
+Customers land on a paginated, searchable grid of all active products. A persistent search input at the top of the page delivers live results as they type — no page reload required. The catalog reacts instantly to any combination of:
+
+- Free-text keyword search
+- Category selection
+- Brand selection
+- Price range (when Advanced Search is enabled)
+- Variant attribute values (when Advanced Search is enabled)
+
+---
+
+## Grid / List View Toggle
+
+Customers can switch between two display modes using the toggle in the catalog toolbar:
+
+| Mode | Layout | Best For |
+| --- | --- | --- |
+| **Grid** | Cards arranged in columns | Browsing visually rich product photos |
+| **List** | Horizontal rows with descriptions | Comparing specs or text-heavy products |
+
+The selected mode is preserved during the session. No configuration is required — both views are always available.
+
+---
+
+## Pagination
+
+A dropdown control lets shoppers choose how many products appear per page. The `perPage` query parameter is validated against a strict server-side whitelist — values outside the list are rejected and reset to the default.
+
+<CodeGroup>
+
+```text Allowed perPage Values
+5 | 10 | 15 | 25 | 50 | 75 | 100
+```
+
+```text Example URL
+GET /shop?perPage=25&page=2
+```
+
+</CodeGroup>
+
+<Warning>
+  Arbitrary `perPage` values (e.g. `?perPage=999`) are silently sanitized to the nearest allowed value. This prevents denial-of-service through oversized queries.
+</Warning>
+
+---
+
+## Product Image Orientation
+
+Admins control the aspect ratio used for all product card thumbnails across the catalog. The setting is found at:
+
+**Admin → Settings → Shop Display → Product Image Orientation**
+
+| Setting | Aspect Ratio Class | Object Fit | Best For |
+| --- | --- | --- | --- |
+| `16:9` Widescreen _(default)_ | `aspect-video` | `object-cover` | Landscape photography, banners |
+| `1:1` Square | `aspect-square` | `object-contain` | Studio product photos, apparel |
+
+<Tip>
+  Changes take effect immediately for all shoppers. The image cache is cleared automatically when you save the setting — no manual cache flush is needed.
+</Tip>
+
+---
+
+## Hierarchical Category Navigation
+
+### Category Pages
+
+Each category has a dedicated SEO-friendly landing page:
+
+```text
+GET /section/{category_slug}
+```
+
+When a shopper is viewing a category page, a **contextual nested categories panel** appears in the sidebar or header area. Clicking a subcategory entry drills into that child category, updating the URL and filtering the product grid in place.
+
+**Example navigation path:**
+
+```text
+/section/electronics
+  └── /section/laptops
+        └── /section/gaming-laptops
+```
+
+### Dynamic Header & Descriptions
+
+Category and brand landing pages automatically replace the generic "Shop" title with the **database-stored name and description** for that entity. This means every category page has unique, SEO-relevant heading copy without any template changes.
+
+### Categories Mega-Menu
+
+The global site header includes a **recursive dropdown mega-menu** that reflects your category tree in real time:
+
+- Only categories with **at least one active product** are shown
+- Nested children render as indented sub-groups
+- Menu data is cached and invalidated automatically when categories or products change
+
+---
+
+## Brand Filtering & Brand Pages
+
+### Brand Landing Pages
+
+Every brand has its own SEO-friendly page:
+
+```text
+GET /brands/{brand_slug}
+```
+
+Like category pages, brand pages display the brand's name, logo, and description from the database.
+
+### Brands Mega-Menu
+
+A dedicated **Brands panel** in the header shows all active brands with their logos and short descriptions:
+
+- **Desktop**: full slide-out or dropdown panel
+- **Mobile**: collapsible accordion within the mobile navigation drawer
+
+### Combined Brand & Category Filters
+
+Brand and category filters can be **active simultaneously**. When both are selected, products must satisfy both constraints (logical AND). The URL reflects the current state cleanly:
+
+| Active Filter | URL Pattern |
+| --- | --- |
+| Category only | `/section/notebooks` |
+| Brand only | `/brands/{slug}` |
+| Both active | `/shop?category=notebooks&brand=apple` |
+
+<Note>
+  When a brand filter is active, the subcategory options in the category panel are **dynamically narrowed** to only show subcategories that contain products from that brand. This prevents empty result pages.
+</Note>
+
+---
+
+## Advanced Shop Search Filtering
+
+<Info>
+  Advanced Search Filtering is **disabled by default**. Enable it via: **Admin → Settings → Shop Display → Enable Advanced Search Filtering Panel**
+
+  Admin setting key: `enable_advanced_shop_search`
+</Info>
+
+When enabled, a slide-out drawer replaces the basic filter bar with a comprehensive set of filtering tools. An **"Advanced Filters" button** appears in the catalog toolbar; an **active filter badge** shows the count of currently applied filters at a glance.
+
+### Available Filter Controls
+
+<AccordionGroup>
+  <Accordion title="Multi-Select Brand Checkboxes">
+    Shoppers can select one or more brands simultaneously. Results show products from **any** of the checked brands (logical OR within brand selections).
+  </Accordion>
+
+  <Accordion title="Hierarchical Category & Subcategory Checkboxes">
+    The full category tree is rendered as nested checkboxes. Checking a parent category implicitly includes all its children. Individual subcategories can be selected independently.
+  </Accordion>
+
+  <Accordion title="Dual Price Range Slider">
+    A min/max price slider bounded to the **maximum price in the current catalog**. Customers can also type exact values directly into the min and max input fields. The slider updates the inputs and vice versa.
+  </Accordion>
+
+  <Accordion title="Dynamic JSON Variant Attribute Filtering">
+    Site Store Pro automatically **extracts attribute keys** from your product variant JSON (e.g., Color, Size, Material, Storage). Each discovered attribute becomes its own filter group with all observed values as checkboxes.
+
+    No manual configuration is required — add new variant attributes to your products and they appear in the filter drawer automatically.
+
+    **Examples of auto-generated filter groups:**
+
+    - Color: Red, Blue, Midnight Black, Space Gray
+    - Size: XS, S, M, L, XL, XXL
+    - Material: Cotton, Polyester, Wool
+    - Storage: 128 GB, 256 GB, 512 GB, 1 TB
+  </Accordion>
+</AccordionGroup>
+
+### Drawer Controls
+
+| Button | Behavior |
+| --- | --- |
+| **Reset All Filters** | Clears every active filter and reloads the full catalog |
+| **Apply & View Products** | Closes the drawer and applies all selected filters |
+
+### URL State Synchronization
+
+Every combination of advanced filters is **serialized into the page URL** as query parameters. This means customers can bookmark or share their filtered view, and the exact filter state is restored when the link is opened.
+
+```text Example Advanced Filter URL
+GET /shop?brands[]=apple&brands[]=dell&category=laptops&price_min=500&price_max=2000&color[]=silver&size[]=15-inch
+```
+
+---
+
+## Quick Reference
+
+<CardGroup cols={2}>
+  <Card title="Main Catalog" icon="store">
+    `GET /shop` — paginated, searchable, filterable product listing
+  </Card>
+
+  <Card title="Category Pages" icon="folder-tree">
+    `GET /section/{category_slug}` — SEO-friendly category landing
+  </Card>
+
+  <Card title="Brand Pages" icon="tag">
+    `GET /brands/{brand_slug}` — SEO-friendly brand landing
+  </Card>
+
+  <Card title="Advanced Filters" icon="sliders">
+    Admin key: `enable_advanced_shop_search` — off by default
+  </Card>
+</CardGroup>

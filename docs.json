@@ -1,0 +1,138 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "name": "Store Pro Documentation",
+  "theme": "maple",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#ef7025",
+    "light": "#eec9bc",
+    "dark": "#4fa1ab"
+  },
+  "navbar": {
+    "primary": {
+      "type": "button",
+      "label": "Admin Login",
+      "href": "/admin"
+    }
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "user-roles",
+              "demo-store"
+            ]
+          },
+          {
+            "group": "Storefront",
+            "pages": [
+              "storefront/shop-catalog",
+              "storefront/product-details",
+              "storefront/cart-checkout",
+              "storefront/digital-downloads"
+            ]
+          },
+          {
+            "group": "Admin: Products",
+            "pages": [
+              "admin/products-overview",
+              "admin/variants-pricing",
+              "admin/inventory-warehouse",
+              "admin/bulk-import",
+              "admin/product-duplication",
+              "admin/product-reviews"
+            ]
+          },
+          {
+            "group": "Admin: Orders & Sales",
+            "pages": [
+              "admin/orders-refunds",
+              "admin/discounts-engine",
+              "admin/shipping-tax",
+              "admin/email-notifications"
+            ]
+          },
+          {
+            "group": "Admin: CMS",
+            "pages": [
+              "cms/pages-posts",
+              "cms/downloads-manager",
+              "cms/code-embeds",
+              "cms/form-builder",
+              "cms/list-menus-shortcodes",
+              "cms/header-footer-builder",
+              "cms/navigation-builder"
+            ]
+          },
+          {
+            "group": "Payments & Subscriptions",
+            "pages": [
+              "payments/overview",
+              "payments/stripe",
+              "payments/paddle",
+              "payments/paypal",
+              "payments/subscriptions",
+              "payments/webhooks"
+            ]
+          },
+          {
+            "group": "Plugins & Extensions",
+            "pages": [
+              "plugins/plugin-system",
+              "plugins/display-plugins",
+              "plugins/shipping-plugins",
+              "plugins/custom-plugins"
+            ]
+          },
+          {
+            "group": "Support & Helpdesk",
+            "pages": [
+              "helpdesk/ticketing",
+              "helpdesk/knowledge-base"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/global-settings",
+              "configuration/currency-vat",
+              "configuration/multilingual",
+              "configuration/security",
+              "configuration/production-checklist"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API & Webhooks",
+        "groups": [
+          {
+            "group": "Routes Reference",
+            "pages": [
+              "api/storefront-routes",
+              "api/admin-routes",
+              "api/webhook-endpoints"
+            ]
+          },
+          {
+            "group": "Shortcode Reference",
+            "pages": [
+              "api/shortcode-reference",
+              "api/shortcode-pipelines"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

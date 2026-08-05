@@ -1,0 +1,190 @@
+---
+title: "Payment Webhook Endpoints and Signature Verification"
+sidebarTitle: "Webhooks"
+description: "Register and verify Stripe and Paddle webhooks in Site Store Pro. Covers endpoint URLs, HMAC signature verification, CSRF exemption, and custom gateway setup."
+---
+
+Site Store Pro exposes dedicated webhook endpoints for Stripe and Paddle. All endpoints are CSRF-exempt and use cryptographic signature verification to reject forged or replayed requests. This page documents the endpoint URLs, registration steps, signature algorithms, handled events, the inventory update webhook, and how to add a custom payment gateway.
+
+## Overview
+
+Site Store Pro exposes dedicated webhook endpoints for each payment processor. All routes under `webhooks/*` are **CSRF-exempt** via a wildcard exclusion in `bootstrap/app.php` — no token is required for incoming webhook requests.
+
+---
+
+## Stripe Webhook
+
+**Endpoint:** `POST /webhooks/stripe`
+
+### Registration
+
+Go to **Stripe Dashboard → Developers → Webhooks → Add endpoint** and enter:
+
+```text
+https://yourdomain.com/webhooks/stripe
+```
+
+### Signature Verification
+
+```ini
+STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxx
+```
+
+Verification uses `Stripe\Webhook::constructEvent()` with the `Stripe-Signature` header and the secret above. Any request with an invalid or missing signature is rejected with a `400` response.
+
+### Handled Events
+
+| Event | Action |
+| --- | --- |
+| `payment_intent.succeeded` | Finds order by `authorization_code`, ensures status ≥ 1 (Open) |
+| `payment_intent.payment_failed` | Logs the failure |
+| `charge.refunded` | Sets order status to 3 (Refunded) |
+| `customer.created` | Stores `stripe_customer_id` on matching user |
+| `customer.subscription.created` | Extend for subscription entitlement grants |
+| `customer.subscription.updated` | Extend for plan changes |
+| `customer.subscription.deleted` | Extend for access revocation |
+| `invoice.payment_succeeded` | Extend for recurring renewals |
+| `invoice.payment_failed` | Extend for dunning/retry logic |
+
+---
+
+## Paddle Webhook
+
+**Endpoint:** `POST /webhooks/paddle`
+
+### Registration
+
+Go to **Paddle Dashboard → Developer Tools → Notifications → New Destination** and enter:
+
+```text
+https://yourdomain.com/webhooks/paddle
+```
+
+### Signature Verification
+
+```ini
+PADDLE_WEBHOOK_SECRET=pdl_ntf_xxxxxxxxxxxxxxxx
+```
+
+Site Store Pro manually verifies Paddle signatures using the following steps:
+
+1. Parses the `Paddle-Signature` header: `ts=<timestamp>;h1=<hex>`
+2. Computes `HMAC-SHA256(key=PADDLE_WEBHOOK_SECRET, data="<ts>:<raw_payload>")`
+3. Compares the computed hash against the `h1` value in the header
+4. **Rejects any event with a timestamp older than 5 minutes** (replay attack protection)
+
+### Handled Events
+
+| Event | Action |
+| --- | --- |
+| `transaction.completed` | Finds order by `authorization_code`, ensures status ≥ 1 (Open) |
+| `transaction.payment_failed` | Logs failure with error code |
+| `customer.created` | Stores `paddle_customer_id` on matching user |
+| `subscription.created` | Extend for subscription entitlement grants |
+| `subscription.updated` | Extend for plan modifications |
+| `subscription.canceled` | Extend for access revocation |
+| `subscription.payment_failed` | Extend for dunning logic |
+
+---
+
+## Gateway Customer ID Columns
+
+When `customer.created` events are received, Site Store Pro automatically persists the gateway customer identifier to the `users` table.
+
+| Column | Populated When |
+| --- | --- |
+| `users.stripe_customer_id` | Stripe `customer.created` event received |
+| `users.paddle_customer_id` | Paddle `customer.created` event received |
+
+These IDs are used for future subscription renewals and to link subsequent webhook events back to a Site Store Pro user.
+
+---
+
+## Inventory Update Webhook
+
+**Endpoint:** `POST /webhooks/inventory-update`
+
+Use this endpoint to push inventory changes from an external warehouse management system (WMS) or ERP into Site Store Pro without requiring admin panel access.
+
+### Request Body
+
+```json
+{
+  "sku": "WIDGET-BLUE-L",
+  "quantity": 42
+}
+```
+
+### Responses
+
+| Status | Meaning |
+| --- | --- |
+| `200` | Inventory updated successfully |
+| `404` | No variant found matching the provided SKU |
+| `422` | Missing or invalid request fields |
+
+<Info>
+  Secure this endpoint by restricting access at the network level (firewall/IP allowlist) or by adding a shared-secret header check in the extension override for your integration.
+</Info>
+
+---
+
+## Adding a Custom Gateway
+
+<Steps>
+  <Step title="Copy the example gateway">
+    ```bash
+    cp -r payment-processors/example-gateway/ payment-processors/my-gateway/
+    ```
+  </Step>
+  <Step title="Implement your processor class">
+    Rename and implement `MyGatewayProcessor.php`. Your class must implement `PaymentProcessorInterface`.
+  </Step>
+  <Step title="Add credentials to .env">
+    ```ini
+    MY_GATEWAY_API_KEY=your_api_key
+    MY_GATEWAY_SECRET=your_secret
+    ```
+  </Step>
+  <Step title="Insert a row into order_processors">
+    Add a record with a `processor_id` of **100 or higher**. IDs 0–99 are reserved for built-in processors.
+  </Step>
+  <Step title="Register in config/payment_processors.php">
+    ```php
+    require_once base_path('payment-processors/my-gateway/MyGatewayProcessor.php');
+    $processors[100] = \PaymentProcessors\MyGateway\MyGatewayProcessor::class;
+    ```
+  </Step>
+  <Step title="Register your gateway's JS type">
+    Add a case for your processor ID that returns your gateway's JS type string. This string is used to select the correct client-side SDK at checkout.
+  </Step>
+  <Step title="Set as active in Admin">
+    Go to **Admin → Checkout → Processors** and set your custom gateway as the Primary processor.
+  </Step>
+</Steps>
+
+<Tip>
+  The `payment-processors/` directory is outside `app/` by design. Its contents are **never overwritten** by platform updates, so your custom gateway code is safe across upgrades.
+</Tip>
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Stripe Configuration" icon="stripe" href="/payments/stripe">
+    Full Stripe setup including API keys and extension override.
+  </Card>
+
+  <Card title="Paddle Configuration" icon="credit-card" href="/payments/paddle">
+    Full Paddle setup including Price IDs and dynamic pricing fallback.
+  </Card>
+
+  <Card title="Subscriptions" icon="rotate" href="/payments/subscriptions">
+    Subscription lifecycle webhooks and entitlement handling.
+  </Card>
+
+  <Card title="Payment Overview" icon="layout-grid" href="/payments/overview">
+    Processor architecture, randomize mode, and the two-step checkout flow.
+  </Card>
+</CardGroup>

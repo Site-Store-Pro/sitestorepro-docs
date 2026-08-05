@@ -1,0 +1,199 @@
+---
+title: "Discount Engine: Coupons, BOGO, and Stacking Rules"
+sidebarTitle: "Discounts"
+description: "Set up and manage discounts in Site Store Pro — coupons, item-specific rules, BOGO deals, category promos, wholesale pricing, and stacking configuration."
+---
+
+Site Store Pro's discount engine supports a wide range of promotional strategies — from coupon codes and BOGO deals to category-wide promos and wholesale pricing tiers. Discounts execute in a fixed two-tier priority sequence (item-level first, then order subtotal), with global stacking rules controlled from `/admin/ecommerce/discounts/config`. All discount types are managed from the hub at `/admin/ecommerce/discounts`.
+
+## Admin Routes
+
+| Action | Path |
+| --- | --- |
+| All Discounts Hub | `GET /admin/ecommerce/discounts` |
+| Create New Discount | `GET /admin/ecommerce/discounts/create` |
+| Edit Discount | `GET /admin/ecommerce/discounts/{id}/edit` |
+| Storewide Configuration | `GET /admin/ecommerce/discounts/config` |
+
+The hub lists all discount types — **Coupons, Item Specifics, Category/Brand Promos, BOGOs, Customer Preferred** — with search and pagination at **25 per page**.
+
+---
+
+## Priority Sequence Execution
+
+Discounts are applied in a fixed two-tier sequence. The engine processes **Item-Level** deductions first, then **Order Sub-Total** deductions.
+
+### Tier 1 — Individual Item Discounts
+
+Applied per line item in this order:
+
+<Steps>
+  <Step title="Category & Brand Level">
+    Category or brand-wide promotional price rules.
+  </Step>
+  <Step title="Item Specific">
+    Discount targeting a single product SKU.
+  </Step>
+  <Step title="Special Sale Price">
+    Direct sale/clearance price override on the product.
+  </Step>
+  <Step title="Item Quantity Breaks">
+    Volume-based price tiers (buy more, pay less per unit).
+  </Step>
+  <Step title="Wholesale Price">
+    Wholesale-specific price for customers with `role_id = 2`.
+  </Step>
+</Steps>
+
+### Tier 2 — Order Sub-Total Discounts
+
+Applied to the running subtotal after Tier 1:
+
+<Steps>
+  <Step title="Coupon Code">
+    Customer-entered promo code validated against cart constraints.
+  </Step>
+  <Step title="General Order Discount">
+    Storewide or segment-wide automatic deduction.
+  </Step>
+  <Step title="Preferred Customer Discount">
+    Discount for accounts flagged as preferred customers.
+  </Step>
+  <Step title="New User Promo">
+    One-time discount for first-time registrants.
+  </Step>
+</Steps>
+
+---
+
+## Stacking Configuration
+
+Navigate to **Admin → Discounts → Config** (`/admin/ecommerce/discounts/config`) to set the global stacking rule.
+
+| Mode | Behavior |
+| --- | --- |
+| **One At A Time** | Only the single highest-value discount is applied |
+| **Stacked** | All qualifying discounts are applied cumulatively |
+
+<Info>
+  The stacking rule applies to Tier 2 (Order Sub-Total) discounts. Tier 1 item-level deductions are always evaluated independently per line item.
+</Info>
+
+---
+
+## Tax and Shipping Exclusions
+
+- All discount deductions are applied **before** sales tax and shipping costs are calculated.
+- Promotional coupons can grant **Free Shipping** when the coupon's `free_shipping` flag is set to `true`.
+
+---
+
+## Coupon Filter Validation
+
+When a customer applies a coupon code, the engine validates it against all configured constraints:
+
+| Constraint | Description |
+| --- | --- |
+| Order Minimum Total | Coupon rejected if cart subtotal is below threshold |
+| Order Maximum Total | Coupon rejected if cart subtotal exceeds cap |
+| Weight Constraints | Rejected if total cart weight is outside the allowed range |
+| Quantity Ranges | Rejected if item count is outside allowed min/max |
+| Wholesale Settings | Optionally blocked for wholesale accounts (see Wholesale Constraints) |
+
+### Dynamic Auto-Rejection
+
+<Warning>
+  If the customer modifies their cart **after** applying a coupon — removing items, changing quantities — and the updated subtotal or weight falls outside the coupon's constraints, the coupon is **automatically cleared from the session**. The customer is notified and must re-enter the code if the cart again qualifies.
+</Warning>
+
+---
+
+## Brand or Category Rules
+
+### Cascading Category Discounts
+
+Category-level discount rules **check recursive nested ancestor relations**. A discount applied to a parent category automatically cascades to all subcategories at every depth level.
+
+```text
+Electronics (discounted)
+  └── Laptops         ← inherits discount
+        └── Gaming Laptops  ← inherits discount
+```
+
+### Live Search Selectors
+
+Admin forms for targeting **Brand** and **Category** use debounced live search inputs. Results filter as you type — optimized for stores with large product catalogs. No full page reload required.
+
+---
+
+## Buy X Get Y (BOGO)
+
+### Configuration
+
+Set up a BOGO deal from **Admin → Discounts → Create** by selecting the BOGO type:
+
+- **Trigger Product (Buy X):** the product the customer must add to qualify the deal.
+- **Target Product (Get Y):** the product the customer receives at the discounted or free price.
+
+Both product selectors use **debounced live search** for fast lookup across large catalogs.
+
+### Target Isolation
+
+Once a BOGO deal triggers in the cart:
+
+- The target item is **locked** with `is_bogo_target = true` in the cart metadata.
+- Manual quantity adjustment on the locked target item is **blocked** — the BOGO quantity is managed by the engine, not the customer.
+
+<Note>
+  Target isolation prevents customers from artificially inflating the discounted quantity by manually editing the cart.
+</Note>
+
+---
+
+## Dynamic Promo Info on Storefront Product Page
+
+When the **Show Promo Info on Detail Page** toggle is enabled for a discount, a custom promotional message (edited with the built-in TinyMCE editor) appears on the public product detail view.
+
+The promotional text displays when **any** of the following conditions are true:
+
+| Condition | Match |
+| --- | --- |
+| Product ID matches an **Item-Specific** target | Direct SKU match |
+| Product is the **Buy X** trigger of a BOGO | Trigger product |
+| Product is the **Get Y** target of a BOGO | Target product |
+| Product belongs to a targeted **Brand or Category** | Inherited match |
+
+---
+
+## Wholesale Constraints
+
+- Customers with `role_id = 2` receive **wholesale-specific prices** as configured in the discount engine.
+- The **storewide config** (`/admin/ecommerce/discounts/config`) includes a toggle to **bypass coupons and promotional discounts** for wholesale accounts entirely.
+
+<Warning>
+  When wholesale bypass is enabled, wholesale customers will not see coupon or promo fields at checkout, and no Tier 2 sub-total discounts will apply to their orders.
+</Warning>
+
+---
+
+## Discount Creator Features
+
+When creating or editing any discount at `/admin/ecommerce/discounts/create`, the following tools are available:
+
+<CardGroup cols={2}>
+  <Card title="Date Range Picker" icon="calendar">
+    Set a precise start date and end date for the promotion. The discount deactivates automatically after the end date.
+  </Card>
+
+  <Card title="Live Search Selectors" icon="magnifying-glass">
+    Debounced live search for Products, Brands, and Categories — no manual ID lookup required.
+  </Card>
+
+  <Card title="Buy-X-Get-Y Setup" icon="tag">
+    Select trigger product and target product, set the BOGO quantity, and configure the discount amount or free-item logic.
+  </Card>
+
+  <Card title="Custom S3 Image Override" icon="image">
+    Supply a custom S3 bucket, key, and credentials for discount-specific promotional images, independent of the global S3 configuration.
+  </Card>
+</CardGroup>

@@ -1,0 +1,235 @@
+---
+title: "Install and Configure Site Store Pro"
+sidebarTitle: "Installation"
+description: "Set up Site Store Pro with PHP 8.3+, configure your database and environment, run migrations, seed default data, compile assets, and add optional payment SDKs."
+---
+
+This guide walks you through a complete Site Store Pro installation — from meeting server requirements and configuring your environment to running database migrations, seeding demo data, compiling frontend assets, and enabling optional payment provider SDKs. Follow the steps in order for the smoothest setup experience.
+
+## Requirements
+
+Before you begin, make sure your local environment meets the following requirements:
+
+<CardGroup cols={2}>
+  <Card title="PHP 8.3+" icon="php">
+    Site Store Pro requires PHP 8.3 or higher with the standard Laravel extensions enabled (BCMath, Ctype, Fileinfo, JSON, Mbstring, OpenSSL, PDO, Tokenizer, XML). (PHP 8.5 Recommended)
+  </Card>
+
+  <Card title="Composer" icon="box">
+    Composer is required to install PHP dependencies. Ensure you have the latest stable version installed globally.
+  </Card>
+
+  <Card title="Node.js & npm" icon="node">
+    Node.js (LTS recommended) and npm are required to install and compile frontend assets.
+  </Card>
+
+  <Card title="Database" icon="database">
+    SQLite (for local development) or MySQL / MariaDB (recommended for production). MySQL 8\+ or MariaDB 10.6\+ is preferred.
+  </Card>
+</CardGroup>
+
+<Note>
+  The `phpoffice/phpspreadsheet` package is required if you plan to use the bulk CSV/spreadsheet product import feature. It is not bundled by default — see [step 8](#optional-bulk-import-support) below.
+</Note>
+
+---
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the Site Store Pro repository to your local machine and navigate into the project directory:
+
+    ```bash
+    git clone <repository-url> laravel-ecommerce
+    cd laravel-ecommerce
+    ```
+  </Step>
+  <Step title="Install PHP and Node Dependencies">
+    Install all backend and frontend dependencies:
+
+    <CodeGroup>
+
+    ```bash PHP Dependencies
+    composer install
+    ```
+
+    ```bash Node Dependencies
+    npm install
+    ```
+
+    </CodeGroup>
+  </Step>
+  <Step title="Configure Your Environment">
+    Copy the example environment file and generate your application key:
+
+    ```bash
+    cp .env.example .env
+    php artisan key:generate
+    ```
+
+    Open the newly created `.env` file and update the following values to match your local setup:
+
+    ```env
+    APP_NAME="Site Store Pro"
+    APP_URL=http://localhost
+    
+    DB_CONNECTION=mysql
+    DB_HOST=127.0.0.1
+    DB_PORT=3306
+    DB_DATABASE=your_database_name
+    DB_USERNAME=your_db_user
+    DB_PASSWORD=your_db_password
+    ```
+
+    <Note>
+      If you are using SQLite for local development, set `DB_CONNECTION=sqlite` and ensure a `database/database.sqlite` file exists. You can create one with `touch database/database.sqlite`.
+    </Note>
+  </Step>
+  <Step title="Run Database Migrations and Seed">
+    Run a fresh migration and seed the database with all default data:
+
+    ```bash
+    php artisan migrate:fresh --seed
+    ```
+
+    The seeder creates all default roles, a home page, common cms pages such as privacy, about us, contact us, an admin account, and sample configuration. A fresh install typically completes in under a minute.
+
+    <Warning>
+      `migrate:fresh` will **drop all existing tables** and rebuild from scratch. Never run this command on a production database or any database containing data you need to keep.
+    </Warning>
+  </Step>
+  <Step title="(Optional) Load Developer QA Seed Data">
+    If you want to install a demo storefront with sample (training) data.
+
+    ```bash
+    php artisan db:seed --class=DemoStoreSeeder
+    ```
+  </Step>
+  <Step title="Compile Frontend Assets">
+    Build the frontend assets using Vite:
+
+    <Tabs>
+      <Tab title="Development">
+        Starts a Vite dev server with hot module replacement (HMR):
+
+        ```bash
+        npm run dev
+        ```
+      </Tab>
+      <Tab title="Production">
+        Compiles and minifies assets for production deployment:
+
+        ```bash
+        npm run build
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="(Optional) Install Payment SDK Dependencies">
+    Site Store Pro supports Stripe, Paddle (and Paypal) as BUILT-IN (default) payment providers. 
+
+    <CodeGroup>
+
+    ```bash Stripe Only
+    composer require stripe/stripe-php
+    ```
+
+    ```bash Paddle Only
+    composer require paddlehq/paddle-php-sdk
+    ```
+
+    ```bash Both Stripe and Paddle
+    composer require stripe/stripe-php paddlehq/paddle-php-sdk
+    ```
+
+    </CodeGroup>
+
+    <Note>
+      Payment provider credentials (API keys, webhook secrets, etc.) are configured via your `.env` file after the respective SDK is installed. Refer to the Payment Configuration guide for full setup instructions.
+    </Note>
+  </Step>
+  <Step title="(Optional) Install Bulk Import Support">
+    To enable bulk product imports via CSV or spreadsheet files, install the `phpoffice/phpspreadsheet` package:
+
+    ```bash
+    composer require phpoffice/phpspreadsheet
+    ```
+
+    Once installed, the **Bulk Import** option will become available in the Admin → Products area.
+  </Step>
+  <Step title="Create the Storage Symlink">
+    In production (and recommended for local development too), create the public storage symlink so uploaded files are accessible via the browser:
+
+    ```bash
+    php artisan storage:link
+    ```
+
+    <Warning>
+      Without this symlink, product images and other uploaded media will **not** be publicly accessible. This step is required for any environment where file uploads are used.
+    </Warning>
+  </Step>
+</Steps>
+
+---
+
+## Default Admin Login
+
+After running migrations and seeding, your Site Store Pro installation includes a default administrator account:
+
+<Card title="Default Admin Credentials" icon="lock">
+  | Field | Value |
+  | --- | --- |
+  | **URL** | `/admin` |
+  | **Email** | `admin@support.local` |
+  | **Password** | `SampleUser12345#` |
+</Card>
+
+<Warning>
+  Change the default admin password immediately after your first login, especially before deploying to any publicly accessible environment. Navigate to **Admin → Users** and edit the admin account to set a new, secure password.
+</Warning>
+
+---
+
+## Quick Reference
+
+<Accordion title="Full Installation Command Sequence">
+  ```bash
+  # 1. Clone and enter the project
+  git clone <repository-url> laravel-ecommerce
+  cd laravel-ecommerce
+  
+  # 2. Install dependencies
+  composer install
+  npm install
+  
+  # 3. Environment setup
+  cp .env.example .env
+  php artisan key:generate
+  
+  # 4. Run migrations and seed
+  php artisan migrate:fresh --seed
+  
+  # 5. Compile assets
+  npm run build
+  
+  # 6. Create storage symlink
+  php artisan storage:link
+  ```
+</Accordion>
+
+<Accordion title="Optional Extras">
+  ```bash
+  # Demo Store Seeding
+  php artisan db:seed --class=DemoStoreSeeder
+  
+  # Stripe payment SDK
+  composer require stripe/stripe-php
+  
+  # Paddle payment SDK
+  composer require paddlehq/paddle-php-sdk
+  
+  # Bulk import support
+  composer require phpoffice/phpspreadsheet
+  ```
+</Accordion>

@@ -1,0 +1,106 @@
+---
+title: "Site Store Pro: Laravel eCommerce, CMS & Helpdesk Platform"
+sidebarTitle: "Introduction"
+description: "Site Store Pro combines e-commerce, CMS, and helpdesk on Laravel 13. Run your storefront, manage content, accept payments, and handle support from one platform."
+---
+
+Site Store Pro is a full-featured platform that combines a high-performance e-commerce storefront, a flexible CMS site-builder, and a complete customer support system. Built on Laravel 13, Livewire 3, Tailwind CSS, and Alpine.js, it gives you everything you need to run an online store — from product catalog management and multi-gateway payments to CMS page creation and helpdesk ticketing.
+
+<CardGroup cols={2}>
+  <Card title="Installation & Setup" icon="server" href="/installation">
+    Get the platform running locally or on a production server in minutes.
+  </Card>
+
+  <Card title="User Roles" icon="users" href="/user-roles">
+    Understand Customers, Wholesale, Admins, and Staff permissions.
+  </Card>
+
+  <Card title="Storefront & Shop" icon="store" href="/storefront/shop-catalog">
+    Explore the public-facing shop catalog, product pages, and checkout flow.
+  </Card>
+
+  <Card title="Products & Variants" icon="box" href="/admin/products-overview">
+    Create products, set pricing tiers, manage variants, and configure inventory.
+  </Card>
+
+  <Card title="Payment Gateways" icon="credit-card" href="/payments/overview">
+    Accept payments via Stripe, Paddle, or PayPal with subscription support.
+  </Card>
+
+  <Card title="CMS Pages & Content" icon="file-text" href="/cms/pages-posts">
+    Build pages and posts with the TinyMCE editor, shortcodes, and plugin embeds.
+  </Card>
+
+  <Card title="Plugins & Extensions" icon="puzzle-piece" href="/plugins/plugin-system">
+    Extend the platform with display plugins, shipping carriers, and custom drop-ins.
+  </Card>
+
+  <Card title="API & Webhooks" icon="code" href="/api/storefront-routes">
+    Full route reference and webhook endpoints for integrations.
+  </Card>
+</CardGroup>
+
+## What's Included
+
+Site Store Pro ships as a complete, self-contained application. The major modules are:
+
+**E-Commerce Storefront**
+
+- Dynamic product catalog with hierarchical categories, brand filtering, and live search
+- Dependent variant selectors (Color → Size), gift wrapping, and product customization fields
+- Multi-warehouse inventory with real-time stock calculations
+- Discount engine with coupons, BOGO, brand/category promos, and wholesale pricing
+
+**CMS & Site Builder**
+
+- Database-driven pages and posts with TinyMCE, revisions, and autosave
+- Shortcode system for embedding downloads, plugins, forms, and video embeds
+- Header/Footer builder with drag-and-drop blocks and CSS theme customization
+- Dynamic navigation builder with mega menus, color schemes, and visibility rules
+
+**Payments & Checkout**
+
+- Stripe (one-time and subscriptions), Paddle Billing, and PayPal Smart Buttons
+- US Sales Tax, Canadian Sales Tax, European VAT, VAT-inclusive pricing with automatic cross-border VAT removal
+- Per-item tax control (`charge_tax`), handling surcharges, and free-shipping coupons
+
+**Helpdesk & Knowledge Base**
+
+- Customer ticket submission with file attachments and tokenized guest access
+- Staff ticket queue, agent assignment, and reply threading
+- Knowledge base with categories, articles, ratings, and AI article writer
+
+**Plugin System**
+
+- Built-in display plugins: Slideshow, Featured Items, Cross-Sell List, Events Calendar, Live Search
+- Real-time shipping carrier plugins: FedEx REST API, UPS REST API, USPS REST API v3
+- Drop-in external plugin architecture — add custom plugins without modifying platform code
+
+## Technology Stack
+
+| Component | Technology |
+| --- | --- |
+| Backend Framework | Laravel 13 |
+| Frontend/Logic | Livewire 3 |
+| JS Reactivity | Alpine.js |
+| Styling | Tailwind CSS |
+| Rich Text Editor | TinyMCE (GPL, self-hosted) |
+| Authentication | Breeze \+ Socialite (Google/Facebook/GitHub OAuth) |
+| Database | MySQL / SQLite |
+
+## Getting Started
+
+<Steps>
+  <Step title="Install the platform">
+    Follow the [Installation guide](/installation) to clone the repo, install dependencies, and configure your environment.
+  </Step>
+  <Step title="Seed demo data">
+    Run `php artisan migrate:fresh --seed` to create the database and populate default roles, a home page, and sample content. Optionally load the [Demo Store](/demo-store) with 34 sample products.
+  </Step>
+  <Step title="Log in to the admin panel">
+    Navigate to `/admin` and log in with `admin@support.local` / `SampleUser12345#`. <br />(!important: make sure you change the sample password after login). Explore the dashboard, products, and settings.
+  </Step>
+  <Step title="Configure payments">
+    Add your Stripe, Paddle, or PayPal credentials to `.env` and activate the desired processor under **Admin → Checkout → Processors**.
+  </Step>
+</Steps>

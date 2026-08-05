@@ -1,0 +1,224 @@
+---
+title: "Site Store Pro Admin: Manage Products, Categories, and Brands"
+sidebarTitle: "Products"
+description: "Create, edit, and organize products in Site Store Pro — catalog management, cross-selling, category and brand admin, image sets, and rich-text descriptions."
+---
+
+The Products section of the Site Store Pro admin panel is your central workspace for building and maintaining your catalog. From the main listing at `/admin/ecommerce/products` you can search and filter your products, jump directly to any product editor, and manage categories, brands, and images — all in one place. Each product edit page features a sticky anchor quick-nav bar, a TinyMCE rich-text editor, a cross-selling panel, and full control over image sets, orientations, and alt text.
+
+## Product Catalog
+
+The main product catalog is accessible at `GET /admin/ecommerce/products` and displays **25 products per page**. From here you can search, filter, and jump directly to any product's edit page.
+
+At the top of the product list, the **Recently Edited Products** dashboard widget shows the **5 most recently edited products**, each with a thumbnail, title, price range, and last-edited timestamp. Quick **Edit** and **View Site** links are provided for each entry so you can jump directly back to work or preview the live page.
+
+---
+
+## Product Edit Page
+
+Navigate to `GET /admin/ecommerce/products/{id}/edit` to open the full product editor.
+
+### Anchor Quick-Nav Bar
+
+A sticky navigation bar at the top of the edit page provides instant jump-links to each major section:
+
+<CardGroup cols={4}>
+  <Card title="Product Details" icon="tag">
+    Core fields: title, descriptions, categories, brand, images
+  </Card>
+
+  <Card title="Prices & Variants" icon="dollar-sign">
+    Pricing tiers, variant attributes, subscription IDs
+  </Card>
+
+  <Card title="Advanced Settings" icon="sliders">
+    Checkout behavior, layout, redirects, featured flag
+  </Card>
+
+  <Card title="View Product Page" icon="arrow-up-right-from-square">
+    Opens the live storefront page for this product
+  </Card>
+</CardGroup>
+
+---
+
+## Product Descriptions
+
+### Long Description (TinyMCE Rich Text Editor)
+
+The **Long Description** field uses the full TinyMCE editor with the complete toolbar:
+
+<Accordion title="TinyMCE Toolbar Features">
+  - **Styles** — paragraph, heading (H1–H6), and preformatted styles
+  - **Bold / Italic / Underline / Strikethrough**
+  - **Ordered and unordered lists**
+  - **Text alignment** — left, center, right, justify
+  - **Link insertion** — internal or external URLs
+  - **Image insertion** — insert images from URL or uploaded media
+  - **Supercode** — inline code block mode (see below)
+  - **Fullscreen** — distraction-free editing mode
+</Accordion>
+
+#### Supercode (Ace Editor)
+
+Clicking **\<\>** opens an inline **Ace Editor** overlay with:
+
+| Feature | Detail |
+| --- | --- |
+| Theme | Monokai dark theme |
+| Syntax highlighting | Full HTML syntax coloring |
+| HTML autocomplete | Tag and attribute suggestions |
+| Cursor-position sync | Caret position preserved when toggling between rich and source views |
+
+<Tip>
+  Use Supercode when you need to paste embed codes, custom HTML structures, or clean up generated markup. Changes sync back to the WYSIWYG view automatically when you close the source editor.
+</Tip>
+
+### Short Code Inclusion In Product Description Fields
+
+The **Short and Long Description** field supports dynamic shortcode directives — you can embed shortcodes directly in this field using the standard directive syntax. See the [Shortcode Reference](/api/shortcode-reference) for the full list of available directives.
+
+---
+
+## Categories Management
+
+`GET /admin/ecommerce/categories`
+
+<CardGroup cols={2}>
+  <Card title="Recursive Nested Tree" icon="sitemap">
+    Categories are displayed as a full recursive nested tree. Parent–child relationships are preserved at unlimited depth.
+  </Card>
+
+  <Card title="Drag-and-Drop Sort" icon="arrows-up-down-left-right">
+    Reorder categories within any level by dragging rows. Changes save automatically.
+  </Card>
+
+  <Card title="Menu Visibility Controls" icon="eye">
+    Each category has a visibility toggle that controls whether it appears in storefront navigation menus.
+  </Card>
+
+  <Card title="Product Count Badge" icon="badge">
+    The product count badge on each category opens a right-panel list of all products assigned to that category.
+  </Card>
+</CardGroup>
+
+- **Pagination:** 25 categories per page
+- **Product Assignment:** assign a product to one or more categories from the product edit page
+
+---
+
+## Brands Management
+
+`GET /admin/ecommerce/brands`
+
+Full brand CRUD is available from the Brands admin panel. Each brand record supports:
+
+| Field | Description |
+| --- | --- |
+| Name | Display name of the brand |
+| Slug | URL-friendly identifier (auto-generated or manual) |
+| Description | Optional brand description |
+| Sort Order | Integer weight controlling display order |
+| Website URL | Link to the brand's external website |
+| Brand Logo | Upload via local storage or Amazon S3 |
+| **Show Image in Menus** | If toggled on, the logo shows in the mega menu on the navigation bar |
+| **Visible in Menus & Shop Filters** | If togged on, the brand shows to the public in menus and filters. If off, brand is only display in admin menus. |
+
+- **Pagination:** 25 brands per page
+
+---
+
+## Product Image Management
+
+### Image URL Resolution
+
+Every product image path is resolved using the following priority chain:
+
+<Steps>
+  <Step title="Direct URL Source Flag">
+    If `image_url_source = 1` on the image set → the stored path is returned **immediately as a direct external URL** with no further processing.
+  </Step>
+  <Step title="CDN Domain Prefix">
+    If a `cdn_url` is configured in settings → the path is **prefixed with the CDN domain**.
+  </Step>
+  <Step title="Amazon S3 Disk">
+    If `image_s3 = 1` → the image is resolved via the **S3 disk**, using either global credentials or custom per-product credentials.
+  </Step>
+  <Step title="Local Public Disk">
+    Otherwise → the image is resolved via the standard **local `public` disk**.
+  </Step>
+</Steps>
+
+### Direct URL Image Source
+
+Each image set carries an `image_url_source` flag. When this flag is enabled:
+
+- Stored paths are treated as **direct external URLs** (e.g. CDN, third-party image hosts)
+- The **"Enter Image URLs"** toggle in the add-set form switches the input between **file upload** mode and **URL entry** mode
+- Existing image sets using URL mode display an amber **"Direct URL"** badge in the admin image list
+
+<Note>
+  Direct URL mode saves disk space and bandwidth — no file is downloaded or stored locally. Make sure the external URL is publicly accessible and stable.
+</Note>
+
+### Recommended Image Orientations
+
+Site Store Pro supports two common product image aspect ratios. Choose the orientation that best matches your storefront layout template:
+
+| Orientation | Aspect Ratio | Best Used For |
+| --- | --- | --- |
+| **Landscape** | 16:9 | Wide-format hero images, banner products, electronics |
+| **Square** | 1:1 | Apparel, accessories, standard catalog grids |
+
+<Tip>
+  Maintain a consistent orientation across all image sets for a given product to avoid layout shifts in gallery and zoom views.
+</Tip>
+
+### Image Alt Text & Zoom Description
+
+| Field | Purpose |
+| --- | --- |
+| `image_alt` | Accessibility alt text for screen readers and SEO |
+| `zoom_label` | Caption displayed in the lightbox/zoom overlay |
+
+### Image Status Badges
+
+In the admin variant image list, each image set displays status badges for:
+
+- **Search** — the image that will show in search results, lists, etc to the public
+- **Active** — green badge for visible images
+- **Inactive** — grey badge for hidden images
+
+---
+
+## Cross-Selling Panel
+
+Access the cross-selling panel via the **quick-nav bar** at the top of the product edit page.
+
+<Steps>
+  <Step title="Search for Products">
+    Use the **live search input** (debounced at **400ms**) to find products by **title** or **product ID**. Results appear in a dropdown as you type.
+  </Step>
+  <Step title="Add Cross-Sell Items">
+    Click a search result to add it to the cross-sell list. A product can have a **maximum of 10 cross-sell items**.
+  </Step>
+  <Step title="Configure Display Options">
+    For each cross-sell entry, configure:
+
+    - **Show on Product Page** toggle (`display_on_item_view`) — displays the cross-sell on the product detail page
+    - **Show on Post-Cart Page** toggle (`display_on_post_cart`) — displays the cross-sell on the post-add-to-cart confirmation page
+  </Step>
+  <Step title="Set Sort Order">
+    Enter a **numeric sort order** for each cross-sell item to control the display sequence.
+  </Step>
+</Steps>
+
+<Warning>
+  Each product supports a maximum of **10 cross-sell items**. Attempting to add an 11th item will be blocked by the form.
+</Warning>
+
+---
+
+## Product-Level Review Toggle
+
+On the product edit page you can enable or disable the reviews system **per product**, independent of the global setting. See [Product Reviews](/admin/product-reviews) for full moderation documentation.

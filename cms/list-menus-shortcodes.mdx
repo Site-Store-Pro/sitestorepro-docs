@@ -1,0 +1,130 @@
+---
+title: "List Menus, Shortcodes, and Dual Pipeline Reference"
+sidebarTitle: "List Menus"
+description: "Build reusable link lists in Site Store Pro and embed them with [list:N]. Covers all shortcode types and the dual-pipeline processing system."
+---
+
+List Menus are reusable, drag-and-drop ordered link collections that you can embed anywhere on your store using the `[list:N]` shortcode. This page covers the builder interface, the full shortcode syntax reference, and how Site Store Pro's dual-pipeline processing system resolves shortcodes across different content areas.
+
+## List Menu Builder
+
+Navigate to **Admin → CMS → List Menus**.
+
+<Warning>
+  Access to the List Menu Builder is restricted to **Admin accounts** only. Other user roles receive a `403 Forbidden` response.
+</Warning>
+
+### Builder Features
+
+| Feature | Detail |
+| --- | --- |
+| **Drag-and-drop reordering** | Powered by SortableJS \+ Alpine.js; sort offsets are saved to the database immediately on drop |
+| **Inline Saving** | A green **Save** button (using Livewire `wire:dirty`) appears automatically when any list item field has unsaved changes |
+| **Creation Safety Resave** | When adding a new item, all existing items are pre-saved first to prevent data loss during concurrent editing |
+| **Dynamic Link Generator Sidebar** | Live search across CMS Pages, Products, Categories, and Brands — max 25 results per query |
+| **Shortcode Badges** | Click a result to copy its shortcode, or drag it directly into a list item input field |
+
+---
+
+## Shortcode Syntax Reference
+
+### List Menu Embed
+
+```text
+[list:{id}]
+```
+
+Embeds the entire named list menu inline.
+
+### Navigation Link Shortcodes
+
+```text
+[page:id]
+[page:id label="Custom Anchor Text"]
+
+[product:id]
+[product:id label="Custom Anchor Text"]
+
+[category:id]
+[category:id label="Custom Anchor Text"]
+
+[brand:id]
+[brand:id label="Custom Anchor Text"]
+```
+
+### Plugin, Download, and Form Shortcodes
+
+```text
+[plugin:slug params]          — embed a display plugin
+[download:N]                  — embed a CMS download
+[download:N label="Custom Text"]
+[code-embed:N]                — embed a code/video snippet
+[cms-form id=N]               — embed a contact form
+```
+
+### Examples
+
+```text
+[page:14 label="View Return Policy"]
+[product:88 label="Shop Blue Widget"]
+[category:5]
+[brand:3 label="Browse Acme Products"]
+[list:2]
+[download:7 label="Firmware v2.4.1 (ZIP)"]
+[code-embed:3 label="Product Demo Video"]
+[cms-form id=1]
+```
+
+---
+
+## Shortcode Support Matrix
+
+| Content Field | list / page / product / category / brand | download | plugin | Blade `@auth` |
+| --- | :-: | :-: | :-: | :-: |
+| CMS Page main body | ✅ Pipeline A | ✅ Pipeline B | ✅ Pipeline B | ✅ Pipeline B |
+| CMS Page left sidebar | ✅ A | ✅ B | ✅ B | ✅ B |
+| CMS Page right sidebar | ✅ A | ✅ B | ✅ B | ✅ B |
+| Product short description | ✅ A | ✅ B | ✅ B | ✅ B |
+| Product long description | ✅ A | ✅ B | ✅ B | ✅ B |
+| List menu items | ✅ A | ✅ A¹ | ✅ A¹ | ❌ |
+| Site footer / header layouts | ✅ A | ❌ | ❌ | ❌ |
+
+> ¹ List menu items run through Pipeline A, which also resolves `download` and `plugin` shortcodes when used within list content.
+
+---
+
+## Dual-Pipeline Processing System
+
+Site Store Pro uses two separate processing pipelines for shortcode resolution and dynamic content rendering.
+
+### Pipeline A — ShortcodeProcessor
+
+Handles structural link and list shortcodes:
+
+- `[list:N]` — renders a named list menu
+- `[page:id]`, `[product:id]`, `[category:id]`, `[brand:id]` — resolves to anchor links
+- `[download:N]`, `[plugin:slug]` (when resolved from within a list menu item)
+
+### Pipeline B — Dynamic Blade Parser
+
+Runs after Pipeline A on CMS page bodies, sidebars, and product descriptions. Adds support for:
+
+- `[download:N]` — CMS file delivery
+- `[plugin:slug]` — display plugin embeds
+- Inline **Laravel Blade directives**
+
+#### Blade Directives in CMS Content
+
+Pipeline B enables authenticated-user content gating directly in the TinyMCE editor:
+
+```html
+@auth
+    <p>Welcome back, {{ auth()->user()->name }}!</p>
+@else
+    <p>Sign in to unlock wholesale rates.</p>
+@endauth
+```
+
+<Info>
+  Blade directives (`@auth`, `@guest`, `@if`, etc.) are only supported in content processed by **Pipeline B** — CMS page bodies, sidebars, and product descriptions. They are **not** supported in list menu items or header/footer blocks.
+</Info>

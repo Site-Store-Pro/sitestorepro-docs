@@ -1,0 +1,91 @@
+---
+title: "Multilingual Content, Translation, and Language Switcher"
+sidebarTitle: "Multilingual"
+description: "Add languages, auto-translate content with OpenAI, set per-language currency overrides, and manage the storefront language switcher in Site Store Pro."
+---
+
+Site Store Pro has a built-in multilingual content system. Languages are managed through the admin panel, content models store translations as JSON columns, and an AI-powered translation service can auto-translate your content via OpenAI with a single action.
+
+---
+
+## Managing Languages
+
+Languages are managed through the admin panel under **Admin → Settings → Languages**. Each language record defines:
+
+| Field | Description |
+| --- | --- |
+| Language name | Display name (e.g., "French", "German") |
+| Language code | ISO 639-1 code (e.g., `fr`, `de`) |
+| Active / inactive | Whether the language is shown in the public switcher |
+| Currency override | Optional currency to use when this language is active |
+
+<Info>
+  The public language switcher in the site header **automatically hides** when only one language is configured. It only appears once two or more active languages exist.
+</Info>
+
+---
+
+## AI-Powered Auto-Translation
+
+Site Store Pro integrates with OpenAI to auto-translate content across all configured languages in a single action.
+
+<Info>
+  Auto-translation requires a valid `OPENAI_API_KEY` in your `.env` file:
+
+  ```ini
+  OPENAI_API_KEY=sk-...your-key-here...
+  ```
+</Info>
+
+### How It Works
+
+When you trigger auto-translation on a content item:
+
+1. The platform assembles a structured prompt containing the source-language content and a list of target languages.
+2. The OpenAI API returns translations for each target language.
+3. Results are written back automatically to the item's translation tables and fields.
+4. Translation is processed as a **background queue job** so large content items don't block the admin UI.
+
+<Tip>
+  To process a translation batch process, go to CMS \> Queue Monitor and execute the pending batch by clicking on the 'Start Worker' button. .. or  Run a queue worker via a terminal with the following command.
+
+  ```bash
+  php artisan queue:work
+  ```
+</Tip>
+
+<Warning>
+  AI-generated translations should be reviewed by a native speaker before publishing, especially for product descriptions and legal/policy content.
+</Warning>
+
+---
+
+## Currency Override Per Language
+
+Each language can have an optional **currency override** configured in the language settings.
+
+When a customer switches to a language that has a currency override set:
+
+- The storefront currency symbol and code switch to the override values
+- Prices are displayed in the overridden currency
+- All cart, checkout, and order confirmation pages reflect the overridden currency
+
+This is useful for stores that serve distinct regional audiences under separate language\+currency combinations — for example, an English/USD default with a French/EUR override for European visitors.
+
+<Note>
+  Currency overrides per language are independent from the global currency setting in the Shipping & Taxes Console. The language override takes precedence when that language is active.
+</Note>
+
+---
+
+## Public Language Switcher
+
+The language switcher is rendered in the public site header and allows visitors to select their preferred language.
+
+**Visibility rules:**
+
+- Shown when **2 or more** active languages are configured
+- Automatically hidden when only 1 language is active
+- Persists the selected language in the user's session
+
+When a language is selected, all translatable content on the page is served in that language, falling back to the default language for any strings not yet translated.

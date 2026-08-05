@@ -1,0 +1,178 @@
+{
+  "projectType": "saas",
+  "projectName": "Store Pro — Laravel E-Commerce Platform",
+  "projectDescription": "A comprehensive Laravel 13 e-commerce, CMS, and helpdesk platform featuring a dynamic storefront, full product/variant management, multi-gateway payments, CMS page builder, shortcode system, shipping integrations, and a built-in support ticketing system.",
+  "theme": "maple",
+  "primaryColor": "#ef7025",
+  "lightColor": "#eec9bc",
+  "darkColor": "#4fa1ab",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "installation",
+              "user-roles",
+              "demo-store"
+            ]
+          },
+          {
+            "group": "Storefront",
+            "pages": [
+              "storefront/shop-catalog",
+              "storefront/product-details",
+              "storefront/cart-checkout",
+              "storefront/digital-downloads"
+            ]
+          },
+          {
+            "group": "Admin: Products",
+            "pages": [
+              "admin/products-overview",
+              "admin/variants-pricing",
+              "admin/inventory-warehouse",
+              "admin/bulk-import",
+              "admin/product-duplication",
+              "admin/product-reviews"
+            ]
+          },
+          {
+            "group": "Admin: Orders & Sales",
+            "pages": [
+              "admin/orders-refunds",
+              "admin/discounts-engine",
+              "admin/shipping-tax",
+              "admin/email-notifications"
+            ]
+          },
+          {
+            "group": "Admin: CMS",
+            "pages": [
+              "cms/pages-posts",
+              "cms/downloads-manager",
+              "cms/code-embeds",
+              "cms/form-builder",
+              "cms/list-menus-shortcodes",
+              "cms/header-footer-builder",
+              "cms/navigation-builder"
+            ]
+          },
+          {
+            "group": "Payments & Subscriptions",
+            "pages": [
+              "payments/overview",
+              "payments/stripe",
+              "payments/paddle",
+              "payments/paypal",
+              "payments/subscriptions",
+              "payments/webhooks"
+            ]
+          },
+          {
+            "group": "Plugins & Extensions",
+            "pages": [
+              "plugins/plugin-system",
+              "plugins/display-plugins",
+              "plugins/shipping-plugins",
+              "plugins/custom-plugins"
+            ]
+          },
+          {
+            "group": "Support & Helpdesk",
+            "pages": [
+              "helpdesk/ticketing",
+              "helpdesk/knowledge-base"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/global-settings",
+              "configuration/currency-vat",
+              "configuration/multilingual",
+              "configuration/security",
+              "configuration/production-checklist"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API & Webhooks",
+        "groups": [
+          {
+            "group": "Routes Reference",
+            "pages": [
+              "api/storefront-routes",
+              "api/admin-routes",
+              "api/webhook-endpoints"
+            ]
+          },
+          {
+            "group": "Shortcode Reference",
+            "pages": [
+              "api/shortcode-reference",
+              "api/shortcode-pipelines"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Dynamic product catalog with variants, color/size selectors, and progressive filtering",
+    "Multi-gateway payment processing (Stripe, Paddle, PayPal) with subscription billing",
+    "Full CMS site builder with TinyMCE, shortcodes, and reusable list menus",
+    "Multi-warehouse inventory management with CSV bulk import and webhook sync",
+    "Priority-based discount engine with BOGO, coupons, and wholesale pricing tiers",
+    "VAT-inclusive pricing with cross-border VAT removal for international buyers",
+    "Built-in helpdesk ticketing and knowledge base with AI article writer",
+    "Extensible plugin system for display widgets and real-time shipping carriers (FedEx, UPS, USPS)",
+    "Dynamic email notification templates with merge tags and TinyMCE editor",
+    "Advanced shop search with multi-attribute filtering, price range sliders, and URL sync",
+    "Events calendar plugin with product variant-level event scheduling",
+    "Cross-selling engine with post-cart intermediary pages",
+    "CMS downloads manager supporting local, S3, and CDN file delivery with Video.js player",
+    "Database-driven navigation builder with drag-and-drop, mega menus, and color schemes",
+    "Multilingual content with AI-powered auto-translation via OpenAI"
+  ],
+  "publicApiSurface": [
+    "GET /shop",
+    "GET /section/{category_slug}",
+    "GET /brands/{brand_slug}",
+    "GET /items/{seo_link}",
+    "GET /cart",
+    "GET /checkout",
+    "GET /checkout/review",
+    "GET /checkout/success/{external_id}",
+    "GET /downloads/{orderDetail}/{token}",
+    "GET /cms-download/{id}",
+    "GET /kb",
+    "GET /kb/{seo_link}",
+    "GET /dashboard",
+    "GET /tickets/create",
+    "GET /tickets/view/{token}",
+    "POST /webhooks/inventory-update",
+    "POST /webhooks/stripe",
+    "POST /webhooks/paddle",
+    "POST /webhooks/inbound-email",
+    "GET /api/live-search-api?q={query}",
+    "POST /forms/{slug}/submit",
+    "[plugin:slideshow-2026]",
+    "[plugin:featured-items]",
+    "[plugin:cross-sell-list product_id=X]",
+    "[plugin:events-calendar-2026]",
+    "[plugin:live-search-2026]",
+    "[download:N]",
+    "[code-embed:N]",
+    "[cms-form id=N]",
+    "[list:N]",
+    "[page:N]",
+    "[product:N]",
+    "[category:N]",
+    "[brand:N]"
+  ]
+}

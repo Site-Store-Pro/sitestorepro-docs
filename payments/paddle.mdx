@@ -1,0 +1,155 @@
+---
+title: "Paddle Billing: Setup and Configuration for Site Store Pro"
+sidebarTitle: "Paddle"
+description: "Enable Paddle Billing in Site Store Pro for one-time and subscription payments. Set up API keys, Price IDs, non-catalog fallback pricing, and HMAC webhooks."
+---
+
+Paddle is a built-in payment processor in Site Store Pro (processor ID 2) supporting one-time payments and subscription billing. Setup requires installing the Paddle PHP SDK, adding your API credentials to `.env`, and registering a webhook destination in the Paddle Dashboard. Site Store Pro supports both Paddle catalog Price IDs and dynamic non-catalog pricing for discounted or custom amounts.
+
+## Setup
+
+### Step 1 — Install the SDK
+
+```bash
+composer require paddlehq/paddle-php-sdk
+```
+
+### Step 2 — Add Credentials to `.env`
+
+```ini
+# Production (vendors.paddle.com)
+PADDLE_API_KEY=your_live_api_key
+PADDLE_CLIENT_TOKEN=your_live_client_token
+PADDLE_WEBHOOK_SECRET=pdl_ntf_xxxxxxxxxxxxxxxx
+
+# Sandbox (sandbox-vendors.paddle.com)
+PADDLE_SANDBOX_API_KEY=your_sandbox_api_key
+PADDLE_SANDBOX_CLIENT_TOKEN=your_sandbox_client_token
+```
+
+### Step 3 — Activate in Admin
+
+Navigate to **Admin → Checkout → Processors**, set **Paddle** as the Primary processor, and toggle **Production** ON or OFF depending on your environment.
+
+---
+
+## Paddle Dynamic & Subscription Pricing
+
+Paddle pricing is configured per variant in **Admin → Product Editor → Prices & Variants**.
+
+| Field | Description |
+| --- | --- |
+| `paddle_price` | Base price corresponding to the Paddle catalog price |
+| `paddle_interval` | Recurring cycle: `day`, `week`, `month`, `year`, or empty for one-time |
+| `paddle_frequency` | Number of intervals between billings (e.g. `1` = monthly, `3` = quarterly) |
+| `paddle_currency_code` | ISO currency code (defaults to `USD`) |
+
+### Catalog Match vs. Non-Catalog Fallback
+
+Site Store Pro automatically decides whether to use a pre-configured Paddle Price ID or create a dynamic price at checkout time.
+
+<Tabs>
+  <Tab title="Catalog Price Match">
+    **When it applies:** The final checkout price exactly matches the `paddle_price` field on the variant.
+
+    **What happens:** The pre-configured `paddle_sandbox_price_id` or `paddle_live_price_id` is passed directly to Paddle. This is the fastest path — no additional API calls are made.
+  </Tab>
+  <Tab title="Dynamic Non-Catalog Fallback">
+    **When it applies:** The checkout price differs from `paddle_price` due to discounts, fees, or custom pricing.
+
+    **What happens:** Site Store Pro creates a new non-catalog price on Paddle dynamically:
+
+    - **If a Price ID is configured:** Fetches the catalog `product_id` from the Paddle API, then creates a non-catalog price under that existing product.
+    - **If no Price ID is configured:** Creates both a non-catalog product and a non-catalog price on the fly.
+  </Tab>
+</Tabs>
+
+<Info>
+  Non-catalog prices are ephemeral — they are created for the specific transaction and are not reused.
+</Info>
+
+---
+
+## Multiple Items & Constraints
+
+- **Multiple items** are fully supported in a single Paddle transaction.
+- **Interval Uniformity:** When a cart contains mixed dynamic subscription items, all items must share the **same billing interval and frequency**. Mixed intervals (e.g. one monthly \+ one yearly subscription) are not permitted in a single transaction.
+
+---
+
+## Webhook Registration
+
+<Steps>
+  <Step title="Register the endpoint in Paddle Dashboard">
+    Go to **Paddle Dashboard → Developer Tools → Notifications → New Destination** and enter:
+
+    ```text
+    https://yourdomain.com/webhooks/paddle
+    ```
+  </Step>
+  <Step title="Set the webhook secret in .env">
+    ```ini
+    PADDLE_WEBHOOK_SECRET=pdl_ntf_xxxxxxxxxxxxxxxx
+    ```
+  </Step>
+  <Step title="Confirm signature verification is working">
+    Paddle sends test notifications from the dashboard. Check `storage/logs/laravel.log` for any signature errors.
+  </Step>
+</Steps>
+
+### Signature Verification
+
+Site Store Pro verifies every incoming Paddle webhook using the following method:
+
+1. Parses the `Paddle-Signature` header in `ts=<timestamp>;h1=<hex>` format
+2. Computes `HMAC-SHA256(key=PADDLE_WEBHOOK_SECRET, data="<ts>:<raw_payload>")`
+3. Compares the computed hash against the `h1` value
+4. **Rejects events older than 5 minutes** (replay attack protection)
+
+All webhook routes are CSRF-exempt via the `webhooks/*` wildcard in `bootstrap/app.php`.
+
+### Handled Events
+
+| Event | Action |
+| --- | --- |
+| `transaction.completed` | Finds order by `authorization_code`, ensures status ≥ 1 (Open) |
+| `transaction.payment_failed` | Logs failure with error code |
+| `customer.created` | Stores `paddle_customer_id` on matching user |
+| `subscription.created` | Extend for subscription entitlement grants |
+| `subscription.updated` | Extend for plan modifications |
+| `subscription.canceled` | Extend for access revocation |
+| `subscription.payment_failed` | Extend for dunning logic |
+
+<Info>
+  Subscription lifecycle events (`subscription.*`) are currently **logged**. To act on these events — for example, granting or revoking subscription access — use the [Extension Override](#extension-override) pattern to add your business logic.
+</Info>
+
+---
+
+## Extension Override
+
+To customize Paddle behavior without editing the built-in class, create an extension file at:
+
+```text
+payment-processors/paddle/PaddleProcessorExtension.php
+```
+
+The platform auto-detects this file on boot — no changes to `config/payment_processors.php` are needed.
+
+<Tip>
+  The `payment-processors/` directory sits outside `app/` by design. Its contents are never overwritten by platform updates.
+</Tip>
+
+---
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Subscriptions" icon="rotate" href="/payments/subscriptions">
+    Configure Paddle Price IDs and subscription billing intervals for variants.
+  </Card>
+
+  <Card title="Webhooks Reference" icon="webhook" href="/payments/webhooks">
+    Full webhook endpoint reference and custom gateway setup instructions.
+  </Card>
+</CardGroup>

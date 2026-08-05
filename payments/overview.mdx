@@ -1,0 +1,128 @@
+---
+title: "Payment Processors: Overview, Setup, and Configuration"
+sidebarTitle: "Overview"
+description: "Configure Stripe, Paddle, and PayPal in Site Store Pro. Toggle sandbox or production, enable randomize mode, and understand the two-step checkout flow."
+---
+
+Site Store Pro ships with four built-in payment processors — Test, Stripe, Paddle, and PayPal — and supports custom gateways starting at ID 100. The active processor is selected in **Admin → Checkout → Processors** and can be switched at any time without a deployment. This page covers processor configuration, sandbox vs. production toggling, randomize mode, and the two-step checkout flow.
+
+## Architecture
+
+Site Store Pro uses a **pluggable payment processor architecture**. The active gateway is selected in **Admin → Checkout → Processors** (`/admin/ecommerce/checkout/processors`) and resolved at runtime.
+
+Built-in processors are always registered and fully verified — no file edits are needed to use them.
+
+<Info>
+  Custom gateways use IDs 100 and above. IDs 0–99 are reserved for built-in processors.
+</Info>
+
+### Built-in Processors
+
+| Processor ID | Name | Type |
+| --- | --- | --- |
+| `0` | Test Processor | Always-on built-in |
+| `1` | Stripe | Always-on built-in |
+| `2` | Paddle | Always-on built-in |
+| `3` | PayPal | Always-on built-in |
+| `100+` | Custom Gateway | Optional |
+
+---
+
+## Sandbox vs. Production
+
+Each processor row in the Admin panel includes a **Production** toggle.
+
+| Toggle State | Keys Used |
+| --- | --- |
+| **OFF** (Sandbox) | `STRIPE_SANDBOX_*` / `PADDLE_SANDBOX_*` credentials |
+| **ON** (Live) | `STRIPE_*` / `PADDLE_*` credentials |
+
+Switch the toggle at any time — no deployment required.
+
+---
+
+## Processor Selection & Randomize Mode
+
+The active processor for a given order is determined in the following order:
+
+<Steps>
+  <Step title="Randomize OFF">
+    The `primary_processor` value from `order_checkout_options` is used directly.
+  </Step>
+  <Step title="Randomize ON">
+    A processor is randomly selected from all **non-zero configured slots** (primary, secondary, and tertiary). Falls back to the primary processor if none of the slots are configured.
+  </Step>
+  <Step title="Fallback">
+    If no configured processor is found, **Test Processor (ID 0)** is used automatically.
+  </Step>
+</Steps>
+
+<Tip>
+  Use Randomize Mode for A/B testing payment providers or load-balancing across multiple merchant accounts.
+</Tip>
+
+---
+
+## Checkout Display Behavior
+
+The checkout UI adapts automatically based on which processor is active:
+
+| Active Configuration | Checkout UI Shown |
+| --- | --- |
+| Only Test Processor active | Mock payment card (no real charges) |
+| Real processor active | That processor's native JS widget |
+| Randomize ON | A random real processor's widget per page load |
+
+---
+
+## Two-Step Checkout Flow
+
+Site Store Pro uses a two-step approach that separates payment preparation from order placement, ensuring server-side verification before any order record is committed.
+
+```text
+Step 1: preparePayment()        ← Livewire server call
+Step 2: Client-side JS loads    ← Stripe Elements / Paddle.js / PayPal Smart Buttons
+Step 3: placeOrder($token)      ← Livewire server call (server-side verification)
+```
+
+<Steps>
+  <Step title="preparePayment() — Livewire Server Call">
+    Scans the cart for subscription variants and routes to the correct gateway method (`createPaymentIntent`, `createSubscription`, or `createTransaction`).
+  </Step>
+  <Step title="Client-Side JS Initialization">
+    Loads the processor's JavaScript SDK inline:
+
+    - **Stripe** → Stripe Elements (`PaymentElement` \+ optional `AddressElement`)
+    - **Paddle** → Paddle.js inline checkout
+    - **PayPal** → PayPal Smart Buttons in `#paypal-button-container`
+  </Step>
+  <Step title="placeOrder($gatewayToken) — Livewire Server Call">
+    Verifies the payment server-side, records the `authorization_code` and `transaction_id` in `order_payments`, and places the order.
+  </Step>
+</Steps>
+
+<Warning>
+  Orders are never created before server-side payment verification succeeds. The `placeOrder()` call is the authoritative commit point.
+</Warning>
+
+---
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Stripe" icon="stripe" href="/payments/stripe">
+    Configure API keys, webhooks, and billing address settings for Stripe.
+  </Card>
+
+  <Card title="Paddle" icon="credit-card" href="/payments/paddle">
+    Set up Paddle Billing with Price IDs and dynamic non-catalog pricing.
+  </Card>
+
+  <Card title="PayPal" icon="paypal" href="/payments/paypal">
+    Enable PayPal Smart Buttons — no Composer packages required.
+  </Card>
+
+  <Card title="Subscriptions" icon="rotate" href="/payments/subscriptions">
+    Configure recurring billing intervals, free trials, and mixed-cart rules.
+  </Card>
+</CardGroup>

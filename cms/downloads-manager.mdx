@@ -1,0 +1,144 @@
+---
+title: "CMS Downloads Manager: Embed Files with Shortcodes"
+sidebarTitle: "Downloads Manager"
+description: "Deliver files from CMS pages using the Site Store Pro Downloads Manager. Supports local storage, S3, CDN URLs, Video.js playback, and download link shortcodes."
+---
+
+## Overview
+
+The **CMS Downloads Manager** is a standalone, site-wide file delivery system. It is independent of the e-commerce order download system — no purchase is required to access a CMS download. Files are embeddable on any public CMS page or product description using a shortcode.
+
+---
+
+## Admin Routes
+
+| Action | Path |
+| --- | --- |
+| Admin Index | `/admin/cms-downloads` |
+| Create New Record | `/admin/cms-downloads/create` |
+| Edit Record | `/admin/cms-downloads/{id}/edit` |
+| Public Serve Route | `GET /cms-download/{id}` |
+
+---
+
+## File Source Types
+
+Each download record uses one of four source types:
+
+| Type | `source_type` | Description |
+| --- | --- | --- |
+| **Local Storage** | `0` | File uploaded to `storage/app/public/cms_downloads/`; served with correct MIME type via streaming response |
+| **Direct URL** | `1` | `cdn_url` = full public URL; controller issues a `302` redirect |
+| **Env S3** | `2` | Uses the app-wide S3 credentials from `.env`; generates a pre-signed temporary URL (TTL controlled by `s3_expiration_seconds`, default **3600 seconds**) |
+| **Custom S3** | `3` | Per-record credentials (`s3_custom_*` fields); supports separate AWS accounts, regions, or S3-compatible providers per individual download |
+
+<Info>
+  Pre-signed S3 URLs are time-limited to the configured TTL (default 1 hour). No AWS credentials are ever exposed to the browser — the signed URL grants temporary access only.
+</Info>
+
+---
+
+## Shortcode Syntax
+
+```text
+[download:{id}]
+[download:{id} label="Custom Link Text"]
+```
+
+**Examples:**
+
+```text
+Download our user guide:      [download:3]
+Get the updated firmware:     [download:7 label="Firmware v2.4.1 (ZIP)"]
+Watch the tutorial:           [download:12]
+Listen to the audio preview:  [download:15 label="Audio Sample (MP3)"]
+```
+
+Place shortcodes in any CMS page body, left/right sidebar, or product description.
+
+---
+
+## Rendering — Four Output Modes
+
+The rendering engine inspects the file extension (and the `force_download` flag) to determine which output mode to use:
+
+### Mode A — Inline Image
+
+**Triggered by:** `png`, `jpg`, `jpeg`, `gif`, `bmp`, `webp`, `svg`, `tif`, `tiff`
+
+Renders a responsive `<img>` tag with the file as the `src`. Poster art is displayed if configured.
+
+### Mode B — Video.js Player
+
+**Triggered by:** `mp4`, `webm`, `mov`, `qt` — and `force_download = false`
+
+Renders a fully responsive **Video.js** video player with optional poster art support. The player is mobile-friendly and adapts to container width.
+
+### Mode C — Video.js Audio Player
+
+**Triggered by:** `mp3` — and `force_download = false`
+
+Renders a **Video.js audio player** UI. Supports poster art as a visual thumbnail.
+
+### Mode D — Styled Download Link
+
+**Triggered by:** All other file types (PDF, ZIP, DOCX, EXE, CSV, etc.) **or** any file type with `force_download = true`
+
+Renders a styled anchor link with a file-type icon. See the File Type Icon System below.
+
+---
+
+## File Type Icon System
+
+Icons are provided by the **file-icon-vectors** library (v1.0.0 via jsDelivr CDN). Three icon packs are available:
+
+| Pack | CSS Class | Style |
+| --- | --- | --- |
+| **Vivid** (default) | `fiv-viv` | Bold, colourful filled icons |
+| **Classic** | `fiv-cla` | Clean monochrome style |
+| **Square** | `fiv-sqo` | Square outline, modern and minimal |
+
+### Icon Position
+
+Controlled by the `show_icon` field on the download record:
+
+| Value | Position |
+| --- | --- |
+| `0` | No icon |
+| `1` | Icon Left |
+| `2` | Icon Right |
+| `3` | Icon Top |
+| `4` | Icon Bottom |
+
+### Global Icon Pack Setting
+
+Set the default icon pack for all CMS Downloads at:
+
+**Admin → Settings → CMS Downloads** → `file_icon_pack`
+
+Individual records can override this at the record level.
+
+---
+
+## Display Options
+
+| Option | Description |
+| --- | --- |
+| **Force Download** | Forces `Content-Disposition: attachment` header; bypasses inline image/video/audio rendering (Mode D always used) |
+| **Open in New Tab** | Adds `target="_blank"` to the rendered anchor link |
+| **Active Toggle** | Inactive records render as an HTML comment (`{/*  cms-download-inactive: N  */}`); never throw a 404 |
+| **Expiry Date** | datetime-local picker; the link is silently suppressed after the expiry datetime — no error shown to visitors |
+| **Custom CSS** | Scoped per-record CSS block using `<style id="cms-dl-style-{id}">` — does not affect other downloads on the same page |
+
+---
+
+## CMS Downloads vs. Product Order Downloads
+
+| Feature | CMS Downloads | Order Downloads |
+| --- | --- | --- |
+| Access control | Optionally public (no purchase required) | Requires valid order UUID token |
+| Trigger | Shortcode embedded in content | Checkout completion |
+| Expiry | Optional `expires_at` datetime | Order-level expiry \+ max-download counter |
+| Media playback | Video.js player for video and audio | Not applicable |
+| Admin location | `/admin/cms-downloads` | `/admin/ecommerce/orders/{id}` |
+| Public route | `GET /cms-download/{id}` | `GET /downloads/{orderDetail}/{token}` |

@@ -1,0 +1,148 @@
+---
+title: "Transactional Email Templates and Notification System"
+sidebarTitle: "Email Notifications"
+description: "Customize transactional emails in Site Store Pro — order confirmations, shipment and download notifications, merge tags, and mailing list opt-in setup."
+---
+
+Site Store Pro sends automated transactional emails for every key order lifecycle event — from order placement and shipment to digital download reminders and support tickets. All templates are fully customizable from the `/admin/email-templates` workspace, where you can edit header, body, and footer content using a rich TinyMCE editor, preview emails with live mock data, and use merge tags like `{{order_id}}` and `{{order_items_table}}` to personalize each message.
+
+## Admin Workspace
+
+```http
+GET /admin/email-templates
+```
+
+Templates are grouped by **trigger notification category**. Each template type can have multiple saved profiles, but only one profile per type is active at a time.
+
+### Workspace Features
+
+<CardGroup cols={2}>
+  <Card title="Profile Cloning" icon="copy">
+    Duplicate any existing template with a single click. Useful for A/B testing subject lines or seasonal layout variants.
+  </Card>
+
+  <Card title="Rich TinyMCE Editors" icon="pen-to-square">
+    Customize the top header block, main message body, and footer independently per template.
+  </Card>
+
+  <Card title="Live In-Browser Preview" icon="eye">
+    Alpine.js modal renders the full HTML email with realistic mock data before you send anything.
+  </Card>
+
+  <Card title="Override Logic" icon="toggle-on">
+    Toggling a template profile to **Active** automatically deactivates all other profiles of the same trigger type — only one is ever live per notification type.
+  </Card>
+</CardGroup>
+
+---
+
+## Trigger-Based Classifications
+
+Each template is bound to one system trigger. Triggers are predefined in the database:
+
+| Trigger Key | When It Fires |
+| --- | --- |
+| `order_confirmation` | Customer places a new order |
+| `order_shipment` | Order is marked as Shipped (status 2) |
+| `download_reminder` | Admin clicks "Send Download Reminder" on an order |
+| User Registration | New account created |
+| Password Reset | Customer requests a password reset link |
+| Ticket Submitted | New support ticket opened |
+| Reply Received | New reply added to a support ticket |
+| Ticket Status Update | Support ticket status changes |
+
+---
+
+## Merge Tag Variable Replacement
+
+All text and HTML content blocks are parsed dynamically at send time. Supported merge tags:
+
+| Tag | Replaced With |
+| --- | --- |
+| `{{order_id}}` | Order invoice number |
+| `{{customer_name}}` | Customer's full name |
+| `{{reset_url}}` | Clickable password reset link |
+| `{{order_items_table}}` | Full itemized order summary block (see below) |
+| `{{download_links}}` | Secure download buttons for digital items (see below) |
+
+---
+
+## `{{order_items_table}}` Block
+
+Inserting `{{order_items_table}}` into a template body automatically injects a fully rendered HTML block. Used in **Order Confirmation**, **Shipment Notification**, and **Download Reminder** templates.
+
+The block contains:
+
+<Steps>
+  <Step title="Order Info Header">
+    Invoice number, order date, and current fulfillment status.
+  </Step>
+  <Step title="Formatted Items Table">
+    All purchased items with quantities and prices. Items are badged:
+
+    - 🟢 **Green badge** — Shippable physical item
+    - 🔵 **Blue badge** — Digital Download item
+  </Step>
+  <Step title="Tax & Shipping Breakdown">
+    Itemized totals: subtotal → promotional discount deductions → tax → shipping fee → final order total.
+  </Step>
+  <Step title="Postal Shipping Address">
+    Displayed for orders containing shippable items; omitted for digital-only orders.
+  </Step>
+</Steps>
+
+---
+
+## `{{download_links}}` Block
+
+Inserting `{{download_links}}` renders a set of stylized **green callout boxes**, one per digital item in the order, each containing a direct secure download button.
+
+<Note>
+  Download links use secure UUID tokens tied to the order. The tokens are validated server-side on every download request and are subject to order-level expiry and max-download counter limits.
+</Note>
+
+---
+
+## Fulfillment Actions & Email Triggers
+
+### Mark Shipped
+
+**Location:** Order Details page → **Mark Shipped** button, or Status dropdown → select status `2`
+
+**Effect:** Shipment confirmation email (`order_shipment`) is dispatched **immediately** to the customer.
+
+### Send Download Reminder
+
+**Location:** Order Details page → fulfillment card → **Send Download Reminder** button
+
+**Effect:** Download reminder email (`download_reminder`) is dispatched on demand for orders containing digital items.
+
+### Double Confirmation Gate
+
+<Warning>
+  High-consequence actions — **Resend Order Confirmation** and **Send Download Reminder** — require **two clicks** to execute. The first click reveals a confirmation prompt; the second click sends the email. This two-step gate prevents accidental duplicate emails to customers.
+</Warning>
+
+---
+
+## Checkout Mailing List Opt-in
+
+Configure under **Admin → Checkout → Processors & Payments**.
+
+| Mode | Behavior |
+| --- | --- |
+| **Off** | No mailing list activity at checkout |
+| **Auto** | Every completed order silently subscribes the customer |
+| **Manual** | A configurable opt-in checkbox appears at checkout; customer must actively check it |
+
+### Supported Providers
+
+| Provider | Required Environment Variable(s) |
+| --- | --- |
+| Mailchimp | `MAILCHIMP_API_KEY`, `MAILCHIMP_SERVER_PREFIX` |
+| Constant Contact | `CONSTANT_CONTACT_API_KEY` |
+| Klaviyo | `KLAVIYO_API_KEY` |
+
+<Info>
+  Mailing list subscription failures are caught silently and logged to `storage/logs/laravel.log`. A subscription error will never interrupt or block the order completion flow.
+</Info>

@@ -1,0 +1,245 @@
+---
+title: "Shopping Cart and Checkout Flow for Customers"
+sidebarTitle: "Cart & Checkout"
+description: "How customers use the Site Store Pro shopping cart, apply coupons, enter shipping details, review orders, and complete checkout with Stripe, Paddle, or PayPal."
+---
+
+## Overview
+
+Site Store Pro's checkout experience is split into three clearly separated stages: the **Cart** (item management), the **Checkout Details** page (customer info and address), and the **Checkout Review** page (payment, shipping, and tax). Each stage has server-side guards that prevent customers from reaching a later stage in an invalid state.
+
+---
+
+## Shopping Cart
+
+**Route:** `GET /cart`
+
+The cart is a **reactive, session-persisted** view of the customer's selected items. Quantities can be updated dynamically without a page reload, and the subtotal recalculates instantly.
+
+### Session Persistence
+
+Cart data is backed by:
+
+- A **cookie-backed database log** — survives browser restarts and login state changes
+- For authenticated customers, the cart is associated with their account so items persist across devices
+
+### Slide-Out Cart Drawer
+
+A **slide-out cart drawer** is available on every page of the storefront — customers don't need to navigate away to check their cart. The drawer shows:
+
+- All cart items with thumbnails and variant descriptions
+- Line-item subtotals
+- Discounted prices with **strikethrough on the original price** where applicable
+- A link to proceed to full cart or checkout
+
+### Empty Cart Gating
+
+Attempting to navigate to `/checkout` with an empty cart **redirects the customer to the homepage** (`/`) with a notice. This prevents a confusing empty checkout state.
+
+### Mixed-Cart Blocking
+
+<Warning>
+  **Subscription variants and regular one-time purchase items cannot coexist in the same cart.**
+
+  If a customer attempts to add a subscription product to a cart that already contains a standard item (or vice versa), the action is blocked and a **descriptive flash error message** is displayed explaining why the item cannot be added.
+
+  Customers must either complete or clear their current cart before adding the conflicting item type.
+</Warning>
+
+---
+
+## Checkout Flow
+
+**Route:** `GET /checkout`
+
+### Guest vs. Returning Customers
+
+The checkout entry page handles both guest and authenticated customers:
+
+| Customer Type | Behavior |
+| --- | --- |
+| **Guest** | Sees a details-entry form with inline options for traditional login or social OAuth login |
+| **Returning customer (complete profile)** | **Automatically bypassed** to `/checkout/review` — no re-entry of known information |
+| **Social OAuth account with empty profile** | Must complete shipping details before proceeding |
+
+### Required Information
+
+The fields required depend on the order contents:
+
+<Tabs>
+  <Tab title="Digital Orders">
+    | Field | Required |
+    | --- | --- |
+    | Full name | ✅ |
+    | Email address | ✅ |
+    | Address / City / Zip / Country / State | ❌ |
+  </Tab>
+  <Tab title="Physical Orders">
+    | Field | Required |
+    | --- | --- |
+    | Full name | ✅ |
+    | Email address | ✅ |
+    | Street address | ✅ |
+    | City | ✅ |
+    | ZIP / Postal code | ✅ |
+    | Country | ✅ |
+    | State / Province | ✅ (US and Canada) |
+  </Tab>
+</Tabs>
+
+### Country & State Selectors
+
+The country dropdown is sorted for convenience:
+
+1. **United States** (pinned to top)
+2. **Canada** (pinned second)
+3. **United Kingdom** (pinned third)
+4. All other countries in alphabetical order
+
+State or province selection is **required** for US and Canadian customers. The state/province dropdown updates dynamically based on the selected country.
+
+### Order Comments
+
+If the **Order Comments** feature is enabled globally (Admin → Settings), customers can include a free-text note with their order during checkout. This note is stored with the order and visible to the admin in the order management view.
+
+---
+
+## Checkout Review
+
+**Route:** `GET /checkout/review`
+
+The review page is the final pre-payment step. It loads all required payment, shipping, and tax information before the customer commits.
+
+### Payment Processors
+
+Site Store Pro supports three payment processors, loaded inline on the review page:
+
+<CardGroup cols={3}>
+  <Card title="Stripe" icon="stripe">
+    **Stripe Elements** embedded inline — card details entered securely on-page
+  </Card>
+
+  <Card title="Paddle" icon="credit-card">
+    **Paddle.js** overlay — handles VAT and global compliance automatically
+  </Card>
+
+  <Card title="PayPal" icon="paypal">
+    **PayPal Smart Buttons** — customers can pay with PayPal balance, card, or Pay Later
+  </Card>
+</CardGroup>
+
+### Shipping Options
+
+All available shipping methods are displayed on the review page, sorted from **lowest to highest cost**:
+
+- **Flat-rate** shipping rules (defined in Admin)
+- **Carrier API rates** (real-time rates from integrated carriers)
+
+Both sources are merged into a single sorted list. Customers select their preferred option before payment.
+
+### Tax Calculation
+
+Tax is calculated automatically based on the customer's shipping address:
+
+| Region | Tax Type |
+| --- | --- |
+| United States | Sales Tax |
+| Canada | GST / HST |
+| Other countries | VAT |
+
+<Note>
+  **Selective Tax:** Only line items with `charge_tax = 1` are included in the taxable base. Products marked as tax-exempt are excluded from the calculation, even if the customer is in a taxable jurisdiction.
+</Note>
+
+### Coupon / Discount Codes
+
+Customers can apply a coupon code on the review page. Coupon validation checks all of the following conditions:
+
+| Validation Check | Description |
+| --- | --- |
+| Order minimum total | Coupon only valid if cart exceeds this amount |
+| Order maximum total | Coupon only valid if cart is below this amount |
+| Weight range | Coupon only valid within a shipment weight range |
+| Quantity range | Coupon only valid for orders with a qualifying item count |
+| Wholesale restriction | Some coupons are restricted to wholesale accounts only |
+
+<Info>
+  **Discount Order of Operations:** The coupon discount is deducted **before** tax and shipping are calculated. If the coupon grants free shipping, that benefit is also applied before final totals are shown.
+</Info>
+
+### Price Summary Display
+
+The review page presents a clear breakdown:
+
+```text
+Subtotal:           $120.00
+Discount (CODE10):  -$12.00
+────────────────────────────
+Taxable subtotal:   $108.00
+Sales Tax (8.5%):    +$9.18
+Shipping (UPS):     +$8.99
+────────────────────────────
+Order Total:        $126.17
+```
+
+---
+
+## Checkout Success
+
+**Route:** `GET /checkout/success/{external_id}`
+
+After a successful payment, customers are sent to the order confirmation page. This page includes:
+
+- A **formatted invoice** with all line items, pricing, and order reference number
+- **Direct download links** for any digital products in the order (token-secured, subject to access limits)
+- Estimated delivery information for physical items
+
+### Post-Order Completion Redirect
+
+<Note>
+  Individual products can override the standard confirmation page behavior. If a product has a `completion_redirect` URL configured, customers who purchased that product are sent to that **custom URL** after checkout instead of the standard confirmation page.
+
+  The redirect button label shown on the confirmation page is also configurable per product.
+</Note>
+
+---
+
+## Checkout Flow Summary
+
+```mermaid
+flowchart TD
+    A[Add to Cart] --> B{Cart empty?}
+    B -- Yes --> C[Redirect to /]
+    B -- No --> D[GET /checkout]
+    D --> E{Returning customer\nwith complete profile?}
+    E -- Yes --> G[GET /checkout/review]
+    E -- No --> F[Enter details / Login]
+    F --> G
+    G --> H[Select shipping\nApply coupon\nEnter payment]
+    H --> I[Place Order]
+    I --> J{completion_redirect\nset on product?}
+    J -- Yes --> K[Redirect to custom URL]
+    J -- No --> L[GET /checkout/success/{external_id}]
+```
+
+---
+
+## Quick Reference
+
+<CardGroup cols={2}>
+  <Card title="Cart Page" icon="cart-shopping">
+    `GET /cart` — reactive item management, session-persisted
+  </Card>
+
+  <Card title="Checkout Details" icon="address-card">
+    `GET /checkout` — guest/returning customer info entry
+  </Card>
+
+  <Card title="Checkout Review" icon="receipt">
+    `GET /checkout/review` — payment, shipping, tax, and coupon
+  </Card>
+
+  <Card title="Order Confirmation" icon="circle-check">
+    `GET /checkout/success/{external_id}` — invoice and digital downloads
+  </Card>
+</CardGroup>

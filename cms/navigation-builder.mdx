@@ -1,0 +1,162 @@
+---
+title: "Navigation Builder: Dynamic Site Menus in Site Store Pro"
+sidebarTitle: "Navigation Builder"
+description: "Build database-driven menus in Site Store Pro with drag-and-drop ordering, mega menus, 5 color schemes, visibility rules, and a custom nav item plugin contract."
+---
+
+The Navigation Builder at `/admin/nav-builder` lets you create unlimited database-driven menus with drag-and-drop ordering, TinyMCE mega menus, per-item visibility rules, five built-in color schemes, and a plugin contract for adding custom item types — all without editing any template files.
+
+## Admin Path
+
+```text
+GET /admin/nav-builder
+```
+
+<Warning>
+  Access is restricted to **Admin accounts** only. Other roles are denied access.
+</Warning>
+
+---
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Unlimited Named Menus" icon="bars">
+    Create as many menus as you need. Designate exactly one as **primary** — it renders automatically in the public site header.
+  </Card>
+
+  <Card title="Graceful Fallback" icon="shield-check">
+    A hardcoded navigation is preserved as a fallback. If no primary dynamic menu is configured, the site header continues to display the default navigation.
+  </Card>
+
+  <Card title="Drag-and-Drop Ordering" icon="arrows-up-down">
+    Reorder items within a menu using SortableJS drag-and-drop. Changes are saved immediately.
+  </Card>
+
+  <Card title="2-Level Nesting" icon="sitemap">
+    Support for top-level items with child sub-menus. Mega menus and custom HTML submenu types accept TinyMCE-edited content.
+  </Card>
+</CardGroup>
+
+---
+
+## Nav Item Types
+
+| Type | Description |
+| --- | --- |
+| `link` | Custom URL — internal or external |
+| `cms_page` | Link to any active CMS page |
+| `home` | Home page |
+| `shop` | Shop landing page |
+| `cart` | Shopping cart — shows a live item count badge |
+| `account` | My Account / customer dashboard |
+| `categories` | Category drill-down dropdown (2 levels of nesting) |
+| `brands` | Brands dropdown |
+| `parent` | Non-navigable parent label with child sub-menu |
+| `no_link` | Display label only; child sub-menu attached |
+| `mega_menu` | Full-width mega menu with TinyMCE HTML content |
+| `html_submenu` | Custom HTML sub-menu dropdown (TinyMCE) |
+| `separator` | Visual divider bar between items |
+| `plugin` | Rendered by a registered `TopNavigationPlugin` |
+
+---
+
+## Visibility Options (Per Item)
+
+Control which users see each navigation item:
+
+| Option | Visible To |
+| --- | --- |
+| `all` | Everyone — logged in or not (default) |
+| `guests_only` | Only visitors who are **not** logged in |
+| `auth_only` | Only logged-in users |
+| `wholesale_only` | Only wholesale users (`role_id = 2`) |
+
+---
+
+## Color Schemes
+
+Five built-in color schemes are available per menu:
+
+| Scheme | Style |
+| --- | --- |
+| `default` | Light background |
+| `dark` | Dark background |
+| `indigo` | Gradient indigo/purple |
+| `slate` | Slate grey |
+| `transparent` | Transparent background (glass effect) |
+
+Select `custom` to use **only** the Custom CSS textarea — no preset variables are applied.
+
+### CSS Variable Scope
+
+All color variables are scoped to `#top-nav-{slug}` to prevent conflicts between multiple menus on the same page:
+
+| CSS Variable | Purpose |
+| --- | --- |
+| `--nav-bg` | Nav bar background color |
+| `--nav-text` | Link text color |
+| `--nav-text-hover` | Link hover color |
+| `--nav-dropdown-bg` | Dropdown menu background |
+| `--nav-dropdown-text` | Dropdown item text color |
+| `--nav-mobile-bg` | Mobile slide-out menu background |
+| `--nav-badge-bg` | Cart item count badge background |
+
+---
+
+## Developer Plugin Contract
+
+Add custom navigation item types by implementing the `TopNavigationPlugin` contract.
+
+### Step 1: Implement the Contract
+
+```php
+use App\Plugins\Contracts\TopNavigationPlugin;
+use App\Models\NavItem;
+
+class SearchBarNavPlugin implements TopNavigationPlugin
+{
+    public function slug(): string
+    {
+        return 'search_bar';
+    }
+
+    public function name(): string
+    {
+        return 'Search Bar';
+    }
+
+    public function renderItem(NavItem $item, array $params): string
+    {
+        return '<li class="nav-search-bar">...</li>';
+    }
+
+    public function adminFormPartial(): ?string
+    {
+        return null;
+    }
+}
+```
+
+### Step 2: Add a `plugin.json` Manifest
+
+Create a `plugin.json` file in your plugin folder (e.g. `plugins/my-search-bar/`):
+
+```json
+{
+    "type": "top-navigation",
+    "class": "SearchBarNavPlugin",
+    "filename": "my-search-bar",
+    "name": "Search Bar Nav Item",
+    "version": "1.0",
+    "author": "Developer Name"
+}
+```
+
+### Step 3: Drop Into `plugins/`
+
+Place the plugin folder inside the `plugins/` directory. It is **auto-discovered on the next request** — no registration or service provider changes needed.
+
+<Note>
+  If `adminFormPartial()` returns a non-null path, that Blade partial is rendered inside the nav item editor in the admin panel, allowing plugin-specific configuration fields to appear alongside the standard item settings.
+</Note>

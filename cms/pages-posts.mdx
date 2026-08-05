@@ -1,0 +1,262 @@
+---
+title: "CMS Pages & Posts: Layouts, Revisions, and Access Gating"
+sidebarTitle: "Pages & Posts"
+description: "Create and manage CMS pages and posts in Site Store Pro with TinyMCE layouts, autosave, revision history, access gating, and the HTML Widget Library."
+---
+
+The Site Store Pro CMS lets you create and manage Pages (type 1) and Posts (type 2) from a single unified workspace. Each page supports multi-column TinyMCE layouts, revision history with autosave, access gating by product purchase or access code, inline image uploads, and a library of pre-built HTML widgets — all configurable without touching any code.
+
+## Admin Routes
+
+| Action | Path |
+| --- | --- |
+| Pages Catalog | `GET /admin/cms-pages` |
+| Create Page | `GET /admin/cms-pages/create` |
+| Edit Page | `GET /admin/cms-pages/{id}/edit` |
+| CMS Categories CRUD | `/admin/cms-categories` |
+| CMS Tags CRUD | `/admin/cms-tags` |
+
+---
+
+## Page Types
+
+Both **Pages** (type 1) and **Posts** (type 2) are managed in the same workspace. Use custom sorting (`custom_sorting`) to control the display order within listings.
+
+### Taxonomy
+
+- **Categories:** many-to-many via `cms_pages_categories` join table
+- **Tags:** many-to-many via `cms_pages_tags` join table
+
+Public archive pages are generated automatically:
+
+| Archive Type | Public URL |
+| --- | --- |
+| Category archive | `/category/{slug}` |
+| Tag archive | `/tag/{slug}` |
+
+### Cross-Table Unique Slug Validation
+
+<Warning>
+  No CMS Page, CMS Category, or CMS Tag may share the same slug. Slugs are validated across all three tables on save. A conflict error will be shown if you attempt to use a slug already in use anywhere in the CMS.
+</Warning>
+
+---
+
+## TinyMCE Editor Configuration
+
+### Enabled Plugins
+
+```text
+preview importcss searchreplace autolink autosave save directionality
+visualblocks visualchars fullscreen image link media table charmap
+advlist lists wordcount help quickbars emoticons supercode
+```
+
+### Supercode Source Code Editor
+
+The **Supercode** plugin provides a full source-code editing experience:
+
+- **Ace Editor** with Monokai dark theme
+- Syntax highlighting and line numbers
+- HTML tag autocomplete
+- Cursor and selection synchronization with the TinyMCE visual editor
+
+### Toolbar Controls
+
+| Group | Controls |
+| --- | --- |
+| View | Fullscreen toggle |
+| History | Undo / Redo |
+| Code | Supercode source editor |
+| Formatting | Bold, Italic, Underline, Strikethrough, Heading levels |
+| Typography | Font family, Font size, Line height |
+| Color | Text color, Background color |
+| Alignment | Left, Center, Right, Justify |
+| Indentation | Indent, Outdent |
+| Lists | Bulleted list, Numbered list |
+| Insert | Character map, Emoticons, Preview, Image, Media, Link, Anchor |
+| Direction | RTL, LTR |
+
+### Tailwind CSS Preview
+
+The TinyMCE editor iframe loads **Tailwind CSS 2.x via CDN**. Tailwind utility class snippets render accurately while editing — no separate preview step required.
+
+---
+
+## Layout Options
+
+| Layout | Description |
+| --- | --- |
+| Single Column | Full-width main content area |
+| Left Sidebar | Main content \+ a separate TinyMCE left column |
+| Right Sidebar | Main content \+ a separate TinyMCE right column |
+| Both Sidebars | Main content \+ left TinyMCE column \+ right TinyMCE column |
+
+Each sidebar column has its own independent TinyMCE editor instance and supports all shortcodes.
+
+---
+
+## Collapsible Navigation Sidebar
+
+The left-hand CMS tab menu — **Page Details, Publishing Info, Security & Gating, Layout & Media, Custom CSS & JS, Revisions History** — can be collapsed. When collapsed, the content/editor area auto-expands to full browser width, maximizing editing space on smaller screens.
+
+---
+
+## Revisions & Autosave
+
+| Feature | Detail |
+| --- | --- |
+| **Autosave Interval** | Background save every **10 minutes** of idle time |
+| **Visual Revisions Preview** | Browse revision history with a rendered preview of each version |
+| **One-Click Restoration** | Restore any previous revision in a single click |
+| **Pre-Restore Backup** | A backup of the current version is automatically created before any restoration, so restores are always reversible |
+
+---
+
+## Page Access Gating
+
+Access gating is configured in the **Security & Gating** tab of the page editor.
+
+### Product Purchase Gate
+
+Set a **Required Product ID** to restrict the page to customers who have completed a paid order for any variant of that product.
+
+- Verification is **session-cached** after the first successful check — no repeated database lookups on subsequent visits.
+- **Admin accounts always bypass** the gate regardless of purchase history.
+
+### Access Code Gate
+
+| Field | Description |
+| --- | --- |
+| `requires_code` | Toggle to enable the access code gate |
+| `access_code` | Plaintext code the visitor must enter on the lock screen |
+
+Once a visitor enters the correct code, the page remains unlocked for the **entire session**. Multiple code-gated pages can be independently unlocked within a single session.
+
+---
+
+## Publishing & Visibility
+
+| Setting | Description |
+| --- | --- |
+| **Draft / Active** | Draft pages return `404` to public visitors; admins can still preview draft pages |
+| **Show/Hide Title** | Toggle page title display on the public frontend |
+| **Show/Hide Author Info** | Toggle author name display |
+| **Show/Hide Date** | Toggle publish date display |
+| **Custom Author Text** | Overrides the author display name |
+| **Featured Image** | Supports local upload, global S3 bucket, or custom S3 bucket / CDN URL |
+| **Page Duplication** | One-click clone creates a copy with a unique slug suffix |
+
+---
+
+## Header & Title Customizations (Layout & Media Tab)
+
+| Option | Description |
+| --- | --- |
+| **Alternate Page Title** | Overrides the main page title on the public frontend only (admin still sees the original) |
+| **Page Title Alignment** | Flexbox alignment control — top-left, middle-center, bottom-right, etc. |
+| **Custom Page Title CSS** | A CSS block injected into the public page `<head>` for this page only |
+| **Slideshow Plugin Shortcode** | Input field above the page header for embedding a display plugin (e.g. `[plugin:slideshow-2026]`) |
+| **Minimum Header Height** | CSS value for the header region — e.g. `320px`, `50vh` |
+
+---
+
+## Helpful Rating Widget
+
+An interactive **thumbs up / thumbs down** widget shown at the bottom of the page when `Hide Page Ranking = 0`.
+
+- Votes are **session-locked** — a visitor can only cast one vote per page per session, preventing ballot stuffing.
+- Aggregate rating counts are stored in the database and visible to admins.
+
+---
+
+## Editor Toolbars & Drawers (Right Edge)
+
+Three slide-out drawers are accessible from the right edge of the page editor:
+
+### 1. HTML Widget Library Drawer
+
+Pre-built HTML snippets ready to insert into TinyMCE:
+
+| Snippet | Description |
+| --- | --- |
+| Callout Banner | Alert-style info or warning banner |
+| FAQ Accordion | Expandable question/answer accordion |
+| 2-Column Features Grid | Two-column feature comparison layout |
+| CTA Button | Tailwind-styled call-to-action button |
+
+Drag a snippet directly onto the TinyMCE canvas, or click to insert at the current cursor position.
+
+### 2. Display Plugins Drawer
+
+Shows all active **display-type plugins** currently installed. Drag the plugin's shortcode token directly into the editor canvas.
+
+### 3. Link Generator Drawer
+
+Live-search across the entire site for linkable content:
+
+| Search Type | Results |
+| --- | --- |
+| Products | Product name \+ direct URL |
+| Brands | Brand name \+ direct URL |
+| Categories | Category name \+ direct URL |
+| CMS Pages | Page title \+ direct URL |
+
+For each result, copy one of three ready-to-use formats:
+
+| Format | Example Output |
+| --- | --- |
+| Full URL | `https://yourstore.com/products/blue-widget` |
+| HTML Anchor | `<a href="/products/blue-widget">Blue Widget</a>` |
+| Primary Tailwind CTA Button | Full Tailwind-styled `<a>` button markup |
+
+---
+
+## Inline Image Upload
+
+```text
+POST /admin/cms-pages/upload-image
+```
+
+Drag-and-drop or paste images directly into the TinyMCE editor. Images are:
+
+1. Uploaded and stored under `/storage/app/public/cms_inline/`
+2. Returned as a site-relative URL and embedded at cursor position automatically
+
+---
+
+## Tab Target Refocusing (Admin Failsafe)
+
+If the same CMS page is open in multiple browser tabs, clicking **Edit Page** from the live public-facing site will **focus the existing editor tab** rather than opening a new one and reloading.
+
+<Note>
+  This prevents concurrent editing sessions on the same page that could result in one tab overwriting another's unsaved changes on save.
+</Note>
+
+---
+
+## Dynamic Homepage
+
+The site root (`/`) is database-driven via the CMS Page record with **ID = 1**.
+
+<Warning>
+  Deletion of CMS Page ID = 1 is strictly prevented at the application level. Attempting to delete it will return an error. To replace the homepage, edit Page ID = 1 or change its content rather than deleting and recreating.
+</Warning>
+
+---
+
+## CMS Page Shortcode
+
+Embed a link to any CMS page using its ID:
+
+```text
+[page:id]
+[page:id label="Custom Text"]
+```
+
+**Examples:**
+
+```text
+Read our full policy here: [page:14]
+[page:14 label="View Return Policy"]
+```

@@ -1,0 +1,195 @@
+---
+title: "User Roles and Permissions in Site Store Pro"
+sidebarTitle: "User Roles"
+description: "Learn Site Store Pro's five user roles: Customer, Wholesale, Admin, Order Processor, and Ticket Manager, including what each can access and how admins assign roles."
+---
+
+## Overview
+
+Site Store Pro uses a five-role permission system that controls what each user can see and do — from the public storefront through to the full backoffice administration panel. Every user account is assigned exactly one role.
+
+<CardGroup cols={2}>
+  <Card title="Customer" icon="user">
+    Storefront shopping, cart, checkout, ticket submission, order history, and digital downloads.
+  </Card>
+
+  <Card title="Wholesale" icon="tag">
+    Everything a Customer can do, plus access to wholesale-specific pricing tiers configured per product variant.
+  </Card>
+
+  <Card title="Admin" icon="shield">
+    Full access to the entire admin panel — products, orders, CMS, helpdesk, users, settings, plugins, and more.
+  </Card>
+
+  <Card title="Order Processor" icon="box">
+    Backoffice access scoped to viewing and editing orders only.
+  </Card>
+
+  <Card title="Ticket Manager" icon="headset">
+    Backoffice access scoped to viewing and replying to helpdesk tickets only.
+  </Card>
+</CardGroup>
+
+---
+
+## Role Reference Table
+
+| Role | Role ID | Access Summary |
+| --- | --- | --- |
+| **Customer** | `1` | Storefront, cart, checkout, ticket submission, ticket history, order history, digital downloads |
+| **Wholesale** | `2` | All Customer access \+ wholesale pricing tier on product variants |
+| **Admin** | `3` | Full admin panel — tickets, users, settings, products, CMS, plugins, all configuration |
+| **Order Processor** | `4` | Admin panel access scoped to viewing and editing orders |
+| **Ticket Manager** | `5` | Admin panel access scoped to viewing and replying to helpdesk tickets |
+
+---
+
+## What Each Role Sees
+
+### Customer & Wholesale — The Storefront
+
+Customers (role `1`) and Wholesale users (role `2`) interact entirely through the public-facing storefront. After logging in, they see:
+
+- **Public header** with your store logo
+- Navigation tabs: **Tickets**, **Orders**, **Downloads**
+- Profile controls (account settings, logout)
+
+Their primary workspace is the **Customer Dashboard** at `/dashboard`, which is a tab-switched interface containing:
+
+<Accordion title="Tickets Tab">
+  Displays all helpdesk tickets the customer has submitted. Customers can open existing tickets to read replies, or submit new tickets directly from this tab.
+</Accordion>
+
+<Accordion title="Order History Tab">
+  Lists all past orders associated with the customer's account, with order status, line items, and tracking information where applicable.
+</Accordion>
+
+<Accordion title="Downloads Tab">
+  Lists all digital products the customer is entitled to download, based on completed orders. Each downloadable file is accessible directly from this tab.
+</Accordion>
+
+#### Wholesale Pricing
+
+Users with role `2` (Wholesale) automatically receive wholesale-specific prices on any product variant that has been configured with a wholesale price tier. No coupon codes or manual steps are required — pricing adjusts automatically at checkout based on the account's role.
+
+<Note>
+  Wholesale prices are set per variant in **Admin → Products → \[Product\] → Variants**. A variant with no wholesale price configured will fall back to the standard retail price, even for Wholesale-role customers.
+</Note>
+
+---
+
+### Admin, Order Processor & Ticket Manager — The Backoffice
+
+Users with roles `3`, `4`, or `5` access Site Store Pro through the **backoffice administration sidebar**. The sidebar and available menu items vary based on their specific role permissions.
+
+<Tabs>
+  <Tab title="Admin (Role 3)">
+    Admins have unrestricted access to every section of the admin panel, including:
+
+    - **Dashboard** — store performance overview
+    - **Products** — full product, variant, inventory, and attribute management
+    - **Orders** — view, edit, fulfil, and manage all orders
+    - **Customers / Users** — create, edit, and manage all user accounts and roles
+    - **Helpdesk / Tickets** — view, reply to, assign, and close all support tickets
+    - **CMS** — manage pages, layouts, and content blocks
+    - **Settings** — global store configuration, shipping zones, payment providers, email templates
+    - **Plugins** — install and configure store plugins
+    - **Menu Builder** — create and edit storefront navigation menus
+
+    <Note>
+      Access to the **Menu Builder** is restricted to **role `3` (Admin) only**. All other roles, including Order Processor and Ticket Manager, will receive a `403 Forbidden` response if they attempt to access it.
+    </Note>
+  </Tab>
+  <Tab title="Order Processor (Role 4)">
+    Order Processors have access only to the **Orders** section of the admin panel. They can:
+
+    - View all orders and their current status
+    - Edit order details (shipping address, line items, status updates)
+    - Mark orders as fulfilled, shipped, or cancelled
+
+    Order Processors cannot access products, CMS, settings, user management, tickets, or any other admin area.
+  </Tab>
+  <Tab title="Ticket Manager (Role 5)">
+    Ticket Managers have access only to the **Helpdesk / Tickets** section of the admin panel. They can:
+
+    - View all support tickets
+    - Read full ticket conversation threads
+    - Post replies to customers
+    - Update ticket status (open, pending, closed)
+    - Assign tickets to other agents
+
+    Ticket Managers cannot access orders, products, CMS, settings, user management, or any other admin area.
+  </Tab>
+</Tabs>
+
+#### Admin Dashboard Redirect
+
+<Note>
+  When an Admin (role `3`), Order Processor (role `4`), or Ticket Manager (role `5`) visits `/dashboard`, they are **automatically redirected** to `/admin/dashboard`. The `/dashboard` customer workspace is intended only for Customer and Wholesale accounts.
+</Note>
+
+---
+
+## Managing User Roles
+
+Roles are assigned and changed by an Admin through the user management interface.
+
+<Steps>
+  <Step title="Open the Admin Panel">
+    Log in as an Admin and navigate to the admin panel at `/admin`.
+  </Step>
+  <Step title="Go to Users">
+    In the sidebar, click **Users**. This lists all registered accounts in your store.
+  </Step>
+  <Step title="Edit the User">
+    Find the user you want to update and click **Edit**, or navigate directly to:
+
+    ```text
+    /admin/users/{user}/edit
+    ```
+
+    This opens the **Role & Profile Editor** for that account.
+  </Step>
+  <Step title="Change the Role">
+    In the Role & Profile Editor, select the desired role from the **Role** dropdown and save your changes. The new role takes effect immediately on the user's next page load or login.
+  </Step>
+</Steps>
+
+---
+
+## Upgrading from a Standalone Helpdesk Installation
+
+If you are upgrading from a version of the application that was deployed as a **standalone helpdesk** (before the e-commerce module was added), be aware of the following breaking change in the role ID numbering:
+
+<Warning>
+  In the standalone helpdesk app, **role `2` was the Agent role**. In Site Store Pro, **role `2` is now reserved for Wholesale customers**. The Agent role has been renumbered to **role `5` (Ticket Manager)**.
+
+  Any existing user accounts that previously held role `2` (Agent) are **automatically converted** to role `5` (Ticket Manager) during the upgrade migration. No manual reassignment is needed, but you should verify your team member accounts after upgrading to confirm their roles are correct.
+</Warning>
+
+| Old Role (Standalone Helpdesk) | Old ID | New Role (Site Store Pro) | New ID |
+| --- | --- | --- | --- |
+| Agent | `2` | Ticket Manager | `5` |
+| _(new)_ Wholesale Customer | — | Wholesale | `2` |
+
+---
+
+## Permissions Quick Reference
+
+| Feature / Area | Customer (1) | Wholesale (2) | Admin (3) | Order Processor (4) | Ticket Manager (5) |
+| --- | :-: | :-: | :-: | :-: | :-: |
+| Storefront browsing | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Cart & checkout | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Wholesale pricing | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Customer dashboard (`/dashboard`) | ✅ | ✅ | ↪ redirect | ↪ redirect | ↪ redirect |
+| Submit & view tickets | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Order history | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Digital downloads | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Admin panel | ❌ | ❌ | ✅ | ✅ | ✅ |
+| Manage products | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Manage orders | ❌ | ❌ | ✅ | ✅ | ❌ |
+| Manage tickets | ❌ | ❌ | ✅ | ❌ | ✅ |
+| CMS & settings | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Menu Builder | ❌ | ❌ | ✅ | ❌ | ❌ |
+| User management | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Plugins | ❌ | ❌ | ✅ | ❌ | ❌ |
