@@ -133,7 +133,6 @@ Use this checklist to ensure your Site Store Pro installation is fully configure
 | Command | Description |
 | --- | --- |
 | `php artisan migrate:fresh --seed` | Full fresh install with all seeders |
-| `php artisan db:seed --class=DevEcommerceSeeder` | Load dev demo products, brands, and categories |
 | `php artisan db:seed --class=DemoStoreSeeder` | Load polished demo store content |
 | `php artisan db:seed --class=PluginSeeder` | Register all built-in plugins |
 | `php artisan search:rebuild-index` | Rebuild search index for all CMS pages and products |
@@ -142,5 +141,5 @@ Use this checklist to ensure your Site Store Pro installation is fully configure
 | `php artisan optimize:clear` | Clear all application caches |
 
 <Note>
-  `DevEcommerceSeeder` and `DemoStoreSeeder` are for development and demo environments only. Running them in production will populate your live store with fake product and content data.
+  `DemoStoreSeeder` is for development and demo environments only. Running them in production will populate your live store with fake product and content data.
 </Note>
