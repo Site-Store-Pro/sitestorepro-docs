@@ -1,14 +1,14 @@
 ---
 title: "Bulk Product Import from CSV, TXT, or Excel Spreadsheets"
 sidebarTitle: "Bulk Import"
-description: "Import products, variants, and images from CSV, TXT, or Excel in Site Store Pro. Covers column mapping, category auto-creation, and SKU duplicate handling."
+description: "Import products, variants, images, digital downloads, events, and more from CSV, TXT, or Excel in Site Store Pro. Covers column mapping, category auto-creation, and SKU duplicate handling."
 ---
 
-The Bulk Product Import tool lets you load hundreds of products — complete with variants, images, categories, and brands — from a single CSV, TXT, or Excel file. The importer features smart header auto-detection, custom column mapping, live row previews before committing, and a post-import report that details every record created, updated, or skipped. Excel (`.xlsx`/`.xls`) support requires the `phpoffice/phpspreadsheet` package.
+The Bulk Product Import tool lets you load hundreds of products — complete with variants, images, categories, brands, inventory, tax settings, shipping weights, digital downloads, and event tickets — from a single CSV, TXT, or Excel file. The importer features smart header auto-detection, custom column mapping, a live row preview before committing, and a post-import report that details every record created, updated, or skipped.
 
 ## Accessing the Import Tool
 
-Navigate to `GET /admin/ecommerce/import` to open the **Bulk Product Import** tool.
+Navigate to **Admin → eCommerce → Import** to open the Bulk Product Import tool.
 
 ---
 
@@ -18,11 +18,9 @@ Navigate to `GET /admin/ecommerce/import` to open the **Bulk Product Import** to
   <Card title=".csv" icon="file-csv">
     Standard comma-separated values
   </Card>
-
   <Card title=".txt" icon="file-lines">
     Tab or custom delimiter-separated text files
   </Card>
-
   <Card title=".xlsx / .xls" icon="file-excel">
     Microsoft Excel spreadsheets via `phpoffice/phpspreadsheet`
   </Card>
@@ -30,62 +28,255 @@ Navigate to `GET /admin/ecommerce/import` to open the **Bulk Product Import** to
 
 ### Excel Dependency
 
-Excel file support requires the `phpspreadsheet` package. Install it with:
+Excel support requires the `phpspreadsheet` package:
 
 ```bash
 composer require phpoffice/phpspreadsheet
 ```
 
 <Note>
-  If this package is not installed, `.xlsx` and `.xls` uploads will fail silently. The CSV and TXT importers have no additional dependencies.
+  If this package is not installed, `.xlsx` and `.xls` uploads will fail silently. CSV and TXT have no extra dependencies.
 </Note>
+
+---
+
+## Sample Templates
+
+Ready-made sample files are available directly on the import page. Download either the **Sample CSV** or **Sample Excel** file — they contain all supported column headers and several example rows covering physical products, digital downloads, and event tickets.
 
 ---
 
 ## Smart Header Auto-Detection & Custom Field Mapping
 
-The importer automatically reads the first row of your file to detect column headers and maps them to Site Store Pro fields. If your headers don't exactly match, use the **custom dropdown mappings** to assign each column manually.
+The importer reads the first row of your file and maps headers to Site Store Pro fields automatically. Matching is **case-insensitive** and works with both spaced forms (`Variant Attributes`) and underscored forms (`variant_attributes`). If your headers don't match, use the **Configure Field Mapping** dropdowns to assign columns manually.
 
 ### Supported Column Mappings
 
 <Accordion title="Product Fields">
-  | Header | Field |
-  | --- | --- |
-  | `title` | Product title |
-  | `short_description` | Short description (supports Blade/shortcode directives) |
-  | `long_description` | Long description (HTML accepted) |
-  | `public_price` | Standard retail price |
-  | `wholesale_price` | Wholesale customer price |
+
+  **`Title`**
+  The product title. **Required.** Rows sharing the exact same title are grouped into one parent product with multiple variants.
+  *Also detected as:* `product title`, `name`, `product_name`, `item_name`, `product`
+
+  ---
+
+  **`Short Description`**
+  Brief summary shown in product listings and category pages.
+  *Also detected as:* `short desc`, `summary`
+
+  ---
+
+  **`Long Description`**
+  Full product description. HTML is accepted.
+  *Also detected as:* `long desc`, `long_description`, `description`, `body`, `details`, `content`
+
+  ---
+
+  **`Public Price`**
+  Standard retail price displayed to all customers.
+  *Also detected as:* `price`, `retail_price`, `retail price`, `msrp`, `regular price`, `public_price`
+
+  ---
+
+  **`Wholesale Price`**
+  Price shown to wholesale / B2B customers.
+  *Also detected as:* `wholesale`, `wholesale_price`, `trade_price`, `b2b_price`
+
+</Accordion>
+
+<Accordion title="SEO / Meta Fields">
+
+  **`Meta Title`**
+  The `<title>` tag for the product page. Leave blank to inherit the product title.
+  *Also detected as:* `meta_title`, `seo title`, `seo_title`, `page_title`
+
+  ---
+
+  **`Meta Description`**
+  The meta description shown in search engine results.
+  *Also detected as:* `meta_description`, `seo description`, `seo_description`, `page_description`
+
 </Accordion>
 
 <Accordion title="Taxonomy Fields">
-  | Header | Accepted Formats |
+
+  **`Category`**
+  The category (or categories) to assign to the product. Supports multiple formats:
+
+  | Format | Example |
   | --- | --- |
-  | `categories` | Single name: `"Electronics"` |
-  |  | Hierarchy string: `"Apparel > Outerwear > Jackets"` |
-  |  | Comma-separated: `"Electronics, Audio"` |
-  |  | JSON array: `["Electronics", "Gadgets"]` |
-  | `brand` | Brand name or brand slug |
+  | Single name | `Electronics` |
+  | Hierarchy string | `Apparel > Outerwear > Jackets` |
+  | Comma-separated | `Electronics, Audio` |
+  | JSON array | `["Electronics", "Gadgets"]` |
+
+  Missing parent or child categories are **created automatically** in the correct nesting order.
+  *Also detected as:* `categories`, `category_name`, `tags`, `departments`
+
+  ---
+
+  **`Brand`**
+  Brand name or slug. A new brand record is created automatically if the name doesn't match an existing one.
+  *Also detected as:* `brand_name`, `manufacturer`, `vendor`
+
 </Accordion>
 
 <Accordion title="Image Fields">
-  | Header | Description |
+
+  **`Thumbnail URL`**
+  URL or path for the small thumbnail image.
+  *Also detected as:* `thumbnail_url`, `thumbnail url`, `thumb`, `thumb_url`, `small_image`
+
+  ---
+
+  **`Main Image URL`**
+  URL or path for the primary product image.
+  *Also detected as:* `main_image_url`, `main image url`, `featured_image`, `featured image`, `image_url`, `image url`, `picture`
+
+  ---
+
+  **`Zoom Images URL`**
+  URL or path for the high-resolution zoom/gallery image.
+  *Also detected as:* `zoom_images_url`, `zoom images url`, `zoom images`, `gallery_images`, `additional_images`, `more_images`
+
+  ---
+
+  **`Image Source Type`**
+  Controls how image URLs are handled. Accepts `1` or `0`.
+
+  | Value | Behaviour |
   | --- | --- |
-  | `thumbnail_url` | URL or path for the thumbnail image |
-  | `main_image_url` | URL or path for the primary product image |
-  | `zoom_images_url` | URL or path for the high-resolution zoom image |
-  | `image_url_source` | `1` = treat as direct external URL; `0` = download and store locally |
+  | `1` | URL is stored directly — no file is downloaded (use for CDN-hosted images) |
+  | `0` | The image is downloaded via HTTP and saved to `storage/cms_product_imports/` |
+
+  *Also detected as:* `image_url_source`, `image source type`, `image_source_type`, `use_direct_url`
+
+  <Warning>
+    Downloading large numbers of high-resolution images during import can be slow. Use Direct URL mode (`1`) for bulk imports with hundreds of images.
+  </Warning>
+
 </Accordion>
 
-<Accordion title="Variant Fields">
-  | Header | Description |
+<Accordion title="Variant Core Fields">
+
+  **`Variant SKU`**
+  Unique SKU for this variant row. Used to detect existing records: a matching SKU triggers an **update** instead of an insert.
+  *Also detected as:* `variant_sku`, `variant sku`, `sku`, `product_sku`, `item_code`
+
+  ---
+
+  **`Variant Name`**
+  The label displayed above the option selector on the storefront — for example `"Choose Your Style:"` or `"Select a Size:"`. Saved to the `variant_label` column on the product record.
+  *Also detected as:* `variant_name`, `variant name`, `option name`, `option label`, `selector label`, `variant label`
+
+  ---
+
+  **`Variant Attributes`**
+  Key:value pairs that describe this specific variant option. Accepts two formats:
+
+  | Format | Example |
   | --- | --- |
-  | `variant_sku` | Unique SKU for this variant row |
-  | `variant_name` | Option Selection Label For Variant |
-  | `variant_attributes` | Attribute string e.g. `Size:M, Color:Black` |
-  | `variant_price` | Retail price override for this variant |
-  | `variant_wholesale_price` | Wholesale price for this variant |
-  | `inventory` | Initial stock quantity |
+  | Friendly string *(recommended)* | `Color:Black, Size:Medium` |
+  | Raw JSON | `{"Color": "Black", "Size": "Medium"}` |
+
+  Both are auto-detected and stored as JSON in `product_variants.attributes`. In the live preview, parsed attributes are displayed as colour-coded badge pills.
+  *Also detected as:* `variant_attributes`, `variant attributes`, `attributes`, `options`, `specs`, `properties`
+
+  ---
+
+  **`Variant Price`**
+  Retail price override for this specific variant. Falls back to `Public Price` if left blank.
+  *Also detected as:* `variant_price`, `variant price`, `option_price`
+
+  ---
+
+  **`Variant Wholesale Price`**
+  Wholesale price override for this specific variant.
+  *Also detected as:* `variant_wholesale_price`, `variant wholesale price`, `variant wholesale`
+
+  ---
+
+  **`Stock Quantity`**
+  Initial stock level. Written to `products_inventory.quantity_available`.
+  *Also detected as:* `inventory`, `stock quantity`, `stock_quantity`, `stock`, `qty`, `quantity`, `inventory_level`
+
+</Accordion>
+
+<Accordion title="Fulfilment & Tax Fields">
+
+  **`Charge Tax`**
+  Whether sales tax applies to this variant. Defaults to `1` (taxable) if omitted.
+  Accepts: `1` = yes, `0` = no
+  *Also detected as:* `charge_tax`, `charge tax`, `taxable`, `sales_tax`
+
+  ---
+
+  **`Shipping`**
+  Whether this variant requires physical shipping. Defaults to `1`. Set to `0` for digital or in-person items.
+  Accepts: `1` = shippable, `0` = not shippable
+  *Also detected as:* `shipping`, `shippable`, `requires_shipping`, `physical`
+
+  ---
+
+  **`Weight`**
+  Item weight used for shipping rate calculations. Enter a numeric value.
+  *Also detected as:* `weight`, `item_weight`, `product_weight`, `ship_weight`
+
+  ---
+
+  **`Weight Type`**
+  Unit of measurement for the weight. Defaults to `lbs` if omitted.
+  Accepts: `lbs`, `ozs`, `kg`, `g`
+  *Also detected as:* `weight_type`, `weight type`, `weight_unit`, `unit_of_weight`
+
+</Accordion>
+
+<Accordion title="Digital Download Fields">
+
+  **`Downloadable`**
+  Marks this variant as a digital product. When enabled, stock is treated as unlimited and the `Shipping` flag is ignored.
+  Accepts: `1` = digital item, `0` = physical item
+  *Also detected as:* `download_item`, `download item`, `downloadable`, `digital`, `is_digital`, `is_download`
+
+  ---
+
+  **`Direct Download URL`**
+  A direct URL to the downloadable file (PDF, ZIP, MP3, etc.). Stored in `product_variants.direct_download_url`.
+  *Also detected as:* `direct_download_url`, `download_url`, `download url`, `file_url`, `digital_url`, `asset_url`
+
+</Accordion>
+
+<Accordion title="Event / Ticket Fields">
+
+  **`Is Event`**
+  Marks this variant as an event ticket. When enabled, the importer creates or updates a `product_variant_events` child record using the event fields below.
+  Accepts: `1` = event, `0` = not an event
+  *Also detected as:* `is_event`, `is event`, `event`, `ticket`
+
+  ---
+
+  **`Event Title`**
+  Display name for this event occurrence (e.g. `"Annual Gala — Chicago"`). Saved to `event_label` on the event record.
+  *Also detected as:* `event_label`, `event label`, `event_title`, `event title`, `event_name`, `event name`
+
+  ---
+
+  **`Event Location`**
+  Venue name or address for the event.
+  *Also detected as:* `event_location`, `event location`, `venue`, `location`
+
+  ---
+
+  **`Event Start Date`**
+  Event start date and time. Format: `YYYY-MM-DD HH:MM` (e.g. `2025-10-15 09:00`).
+  *Also detected as:* `event_start_date`, `event start date`, `start_date`, `start date`, `event_start`, `event date`
+
+  ---
+
+  **`Event End Date`**
+  Event end date and time. Same format as start date.
+  *Also detected as:* `event_end_date`, `event end date`, `end_date`, `end date`, `event_end`
+
 </Accordion>
 
 ---
@@ -93,65 +284,37 @@ The importer automatically reads the first row of your file to detect column hea
 ## Multi-Variant Grouping & Duplicate Handling
 
 <Steps>
-  <Step title="Group Rows by Product (Parent Product With Multiple Variants/Options)">
-    Multiple rows that share the **EXACT same product title**  are automatically merged into a **single parent `Product`**record with multiple `ProductVariant` children.
+  <Step title="Group Rows by Title">
+    Multiple rows that share the **exact same `Title`** value are automatically merged into a **single parent product** with multiple variant children. Matching is case-insensitive after slug normalisation.
   </Step>
   <Step title="Single-Variant Fallback">
-    If a row has **no variant options** defined, a **default single variant** is created automatically so every product always has at least one purchasable variant.
+    If a row has no variant attributes defined, a single default variant is still created — every product always has at least one purchasable option.
   </Step>
-  <Step title="Exact SKU Duplicate Matching">
-    If a row's `variant_sku` **exactly matches** an existing variant in the database → the importer **updates** that variant instead of creating a duplicate. New rows with unmatched SKUs are inserted as new variants.
+  <Step title="SKU-Based Duplicate Detection">
+    If a row's `Variant SKU` exactly matches an existing variant in the database, the importer **updates** that variant instead of creating a duplicate. Unmatched SKUs are always inserted as new variants.
   </Step>
 </Steps>
 
 <Tip>
-  Running the importer twice with the same file is safe — matched SKUs will be updated rather than duplicated.
+  Running the importer twice with the same file is safe — matched SKUs are updated rather than duplicated.
 </Tip>
 
 ---
 
 ## Taxonomy Auto-Creation
 
-You don't need to pre-create categories or brands before importing.
+You do not need to pre-create categories or brands before importing.
 
 <Tabs>
   <Tab title="Categories">
-    - Hierarchy strings (e.g. `Apparel > Outerwear > Jackets`) are **parsed recursively**
-    - Any missing parent or child category is **created automatically** in the correct nesting order
-    - The product is linked to **all resolved category IDs** in the hierarchy
+    - Hierarchy strings (e.g. `Apparel > Outerwear > Jackets`) are parsed recursively
+    - Any missing parent or child category is created automatically in the correct nesting order
+    - The product is linked to all resolved category IDs in the hierarchy
+    - Comma-separated values create or match each category independently
   </Tab>
   <Tab title="Brands">
-    - If the brand name or slug in the import file does not match any existing brand → a **new brand record is created automatically**
+    - If the brand name does not match any existing brand, a new brand record is created automatically
     - The new brand is immediately available in the Brands admin panel
-  </Tab>
-</Tabs>
-
----
-
-## Image URL Handling
-
-<Tabs>
-  <Tab title="Direct External URL Mode (image_url_source = 1)">
-    The remote URL is **stored directly** on the `ProductImage` record as-is. No file is downloaded, and no local disk space is consumed. Use this for images already hosted on a CDN or third-party storage.
-
-    ```text
-    image_url_source = 1
-    → stores remote URL in DB
-    → no local storage used
-    ```
-  </Tab>
-  <Tab title="Local Storage Downloader (image_url_source = 0)">
-    The importer **downloads each image** from the remote URL via HTTP and saves it to:
-
-    ```text
-    storage/cms_product_imports/
-    ```
-
-    The resulting relative file path is stored in the database.
-
-    <Warning>
-      Downloading large numbers of high-resolution images during import can be slow and may time out for very large files. Consider using Direct URL mode for bulk imports exceeding a few hundred images.
-    </Warning>
   </Tab>
 </Tabs>
 
@@ -159,23 +322,16 @@ You don't need to pre-create categories or brands before importing.
 
 ## Admin Dashboard Features
 
-### Template Downloads
-
-Two sample files are available directly from the import page:
-
-<CardGroup cols={2}>
-  <Card title="Download Sample CSV" icon="file-csv">
-    Pre-formatted CSV template with all supported column headers
-  </Card>
-
-  <Card title="Download Sample Excel" icon="file-excel">
-    Pre-formatted `.xlsx` template with column headers and example rows
-  </Card>
-</CardGroup>
-
 ### Live Preview
 
-Before executing the import, a **parsed rows preview table** is rendered on the page showing how your file will be interpreted — column mappings, product groupings, and detected values. Review this carefully before proceeding.
+Before executing the import, a parsed rows preview table (up to 50 rows) is rendered showing how your file will be interpreted:
+
+- Product title, category, brand, and prices
+- Variant SKU and the resolved Variant Name / Label
+- Variant Attributes rendered as colour-coded badge pills (`Color: Black` · `Size: Medium`)
+- Image mode indicator (Direct URL vs. Local Download)
+
+Review this carefully before pressing **Run Import**.
 
 ### Post-Import Report
 
@@ -184,10 +340,10 @@ After the import completes, a summary report is displayed:
 | Metric | Description |
 | --- | --- |
 | Products created | New `Product` records inserted |
-| Products updated | Existing products updated by title/SKU match |
+| Products updated | Existing products updated by title/slug match |
 | Variants created | New `ProductVariant` records inserted |
 | Variants updated | Existing variants updated by SKU match |
 | Categories auto-created | New category records created during taxonomy parsing |
 | Brands auto-created | New brand records created |
 | Images processed | Total image URLs stored or files downloaded |
-| Row errors | Rows that failed validation with error messages |
+| Row errors | Rows that failed with error messages |
