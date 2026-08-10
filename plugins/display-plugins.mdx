@@ -1,12 +1,12 @@
 ---
 title: "Built-in Display Plugins: Shortcode and Parameter Guide"
 sidebarTitle: "Display Plugins"
-description: "Embed dynamic content in Site Store Pro pages with built-in display plugins: Slideshow, Featured Items, Cross-Sell List, Events Calendar, and Live Search."
+description: "Embed dynamic content in Site Store Pro pages with built-in display plugins: Slideshow, Featured Items, Cross-Sell, Brands, Categories, Newsflash, Testimonials, Social Icons, Live Search, Events Calendar, FAQs, Order Tracker, and CMS Modals."
 ---
 
 ## Overview
 
-Display plugins render dynamic HTML blocks inside CMS pages or product descriptions using **shortcodes**. All built-in display plugins are pre-installed and available immediately after running the plugin seeder.
+Display plugins render dynamic HTML blocks inside CMS pages or product descriptions using **shortcodes**. All built-in display plugins are pre-installed and available immediately after running the plugin seeder. Each shortcode follows the format `[plugin:shortcode-name param=value]`.
 
 ---
 
@@ -14,7 +14,7 @@ Display plugins render dynamic HTML blocks inside CMS pages or product descripti
 
 **Shortcode:** `[plugin:slideshow-2026]`
 
-Slide data is managed at `/admin/slideshows` using the CMS Slideshow Builder. Each slideshow has its own ID.
+Displays an active slideshow using Swiper.js with full overlay content controls, flexible alignment, and CSS customizations. Slide data is managed at **Admin → CMS → Slideshows**.
 
 ### Parameters
 
@@ -25,13 +25,23 @@ Slide data is managed at `/admin/slideshows` using the CMS Slideshow Builder. Ea
 | `paging` | `on` | Show pagination dots (`on` / `off`) |
 | `autoplay` | `on` | Enable autoplay (`on` / `off`) |
 | `speed` | `4000` | Autoplay delay in milliseconds |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
 
 ### Admin Settings
 
-Access from **Admin → Plugins → Slideshow → Settings**:
+Access from **Admin → Plugin Manager → Slideshow → Settings**:
 
-- **Live CSS** — dark CSS editor for custom styling applied on top of the default styles
-- **Default CSS** — read-only reference showing the built-in styles
+- **Custom CSS Overrides** — syntax-highlighted CSS editor applied on top of default styles, site-wide
+- **Default Plugin CSS (Read-Only Reference)** — built-in base stylesheet for reference only
+
+### Examples
+
+```text
+[plugin:slideshow-2026]
+[plugin:slideshow-2026 id=2]
+[plugin:slideshow-2026 nav=off paging=off]
+[plugin:slideshow-2026 autoplay=off speed=6000]
+```
 
 ---
 
@@ -39,29 +49,32 @@ Access from **Admin → Plugins → Slideshow → Settings**:
 
 **Shortcode:** `[plugin:featured-items]`
 
+Displays products that have the **Featured Item** flag enabled. Supports grid, list, and Swiper slider display modes.
+
 ### Marking Products as Featured
 
-Before using this plugin, mark products as featured in **Admin → Products → Edit → Advanced Settings → ★ Featured Item toggle → Save**.
+Mark products as featured in **Admin → Products → Edit → Advanced Settings → Featured Item toggle → Save**.
 
 ### Parameters
 
 | Parameter | Default | Description |
 | --- | --- | --- |
 | `display` | `grid` | Layout mode: `grid`, `list`, or `slider` |
-| `max` | `12` | Maximum number of products (1–100) |
+| `max` | `12` | Maximum number of products (1-100) |
 | `cols` | `4` | Grid columns: `2`, `3`, `4`, `5`, or `6` |
 | `sort` | `random` | Sort order: `random`, `newest`, or `name` |
 | `header` | _(blank)_ | Optional section heading |
 | `slides` | `4` | Visible cards at desktop (slider mode only) |
-| `nav` | `on` | Navigation arrows (slider mode only) |
-| `autoplay` | `on` | Auto-advance (slider mode only) |
-| `speed` | `4000` | Autoplay delay in ms (slider mode only) |
+| `nav` | `on` | Navigation arrows (`on` / `off`, slider only) |
+| `autoplay` | `on` | Auto-advance (`on` / `off`, slider only) |
+| `speed` | `4000` | Autoplay delay in ms (slider only) |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
 
 ### Examples
 
 ```text
 [plugin:featured-items]
-[plugin:featured-items display=slider slides=4 header="Editor's Picks" autoplay=on speed=5000]
+[plugin:featured-items display=slider slides=4 header="Editors Picks" autoplay=on speed=5000]
 [plugin:featured-items display=grid cols=3 max=6 sort=newest header="New Arrivals"]
 [plugin:featured-items display=list max=8 sort=name]
 ```
@@ -72,9 +85,11 @@ Before using this plugin, mark products as featured in **Admin → Products → 
 
 **Shortcode:** `[plugin:cross-sell-list product_id=X]`
 
+Displays the cross-selling products linked to a specific product. Supports grid, list, and Swiper slider display modes.
+
 ### Setting Up Cross-Sells
 
-Configure cross-sell relationships in **Admin → Products → Edit → Cross-Selling**. Use the live search field to add products.
+Configure cross-sell relationships in **Admin → Products → Edit → Cross-Selling**. Only items with **Display on Item View** enabled will appear.
 
 ### Parameters
 
@@ -83,9 +98,14 @@ Configure cross-sell relationships in **Admin → Products → Edit → Cross-Se
 | `product_id` | _(required)_ | Numeric ID of the source product |
 | `display` | `grid` | Layout mode: `grid`, `list`, or `slider` |
 | `max` | `12` | Maximum number of products |
-| `cols` | `4` | Grid columns |
+| `cols` | `4` | Grid columns: `2`, `3`, `4`, `5`, or `6` |
 | `sort` | `sort_order` | Sort: `sort_order`, `newest`, or `name` |
 | `header` | _(blank)_ | Optional section heading |
+| `slides` | `4` | Visible cards at desktop (slider only) |
+| `nav` | `on` | Navigation arrows (`on` / `off`, slider only) |
+| `autoplay` | `on` | Auto-advance (`on` / `off`, slider only) |
+| `speed` | `4000` | Autoplay delay in ms (slider only) |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
 
 ### Examples
 
@@ -97,13 +117,171 @@ Configure cross-sell relationships in **Admin → Products → Edit → Cross-Se
 
 ### Post-Cart Intermediary Page
 
-When a product has cross-sells configured with `display_on_post_cart = true`, adding that product to the cart **redirects to a recommendations page** at:
+When a product has cross-sells configured with **Display on Post Cart** enabled, adding that product to the cart redirects to `/cart/recommendations/{productId}` before proceeding to the cart.
+
+---
+
+## Brands Plugin
+
+**Shortcode:** `[plugin:brands-2026]`
+
+Displays brand logos with links to brand SEO slug pages. Supports Slider, Grid, and List modes. Logos display in grayscale by default and full color on hover.
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `display` | `slider` | Layout mode: `slider`, `grid`, or `list` |
+| `max` | `12` | Maximum number of brands to show |
+| `cols` | `4` | Grid columns: `2`, `3`, `4`, `5`, or `6` |
+| `header` | `"Featured Brands"` | Section heading |
+| `autoplay` | `on` | Auto-advance slides (`on` / `off`, slider only) |
+| `show_label` | `1` | Show text brand name below logo (`1` / `0`) |
+| `show_navigation` | `1` | Show prev/next arrows on slider (`1` / `0`) |
+| `show_pagination` | `1` | Show pagination dots below slider (`1` / `0`) |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
+
+### Examples
 
 ```text
-/cart/recommendations/{productId}
+[plugin:brands-2026]
+[plugin:brands-2026 display=grid cols=5 max=20 header="Our Partners"]
+[plugin:brands-2026 display=slider autoplay=on show_label=0]
+[plugin:brands-2026 display=list]
 ```
 
-This page presents cross-sell items before the customer proceeds to the cart, increasing average order value.
+---
+
+## Top-Level Categories Plugin
+
+**Shortcode:** `[plugin:categories-2026]`
+
+Displays **top-level categories only** with image, name, and link to each category SEO slug page. Supports Grid, Slider, and List modes.
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `display` | `grid` | Layout mode: `grid`, `slider`, or `list` |
+| `max` | `12` | Maximum number of categories to show |
+| `cols` | `4` | Grid columns: `2`, `3`, `4`, `5`, or `6` |
+| `header` | `"Top Categories"` | Section heading |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
+
+### Examples
+
+```text
+[plugin:categories-2026]
+[plugin:categories-2026 display=grid cols=3 max=9 header="Shop by Category"]
+[plugin:categories-2026 display=slider]
+[plugin:categories-2026 display=list max=6]
+```
+
+---
+
+## Newsflash Banner Plugin
+
+**Shortcode:** `[plugin:newsflash-2026]`
+
+Renders an announcement ticker/banner strip. Ideal for headers, hero sections, or above-navigation placement.
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `message` | _(admin setting)_ | Announcement text (overrides admin setting for this instance) |
+| `bg_color` | `transparent` | Background color (hex, named, or CSS value) |
+| `text_color` | _(inherited)_ | Text color |
+| `dismissible` | `off` | Allow visitor to dismiss the banner (`on` / `off`) |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
+
+### Admin Settings
+
+Access from **Admin → Plugin Manager → Newsflash → Settings**:
+
+- **News Message Text** — default announcement text when no `message=` parameter is passed
+- **Background Color** — default background color
+- **Text Color** — default text color
+- **Allow Dismiss** — default dismissibility (`on` / `off`)
+
+### Examples
+
+```text
+[plugin:newsflash-2026]
+[plugin:newsflash-2026 message="Free shipping this weekend!" dismissible=on]
+[plugin:newsflash-2026 message="Sale ends tonight!" bg_color="#dc2626" text_color="#ffffff"]
+```
+
+---
+
+## Testimonials Plugin
+
+**Shortcode:** `[plugin:testimonials-2026]`
+
+Renders customer testimonials from the CMS Testimonials table in Slider or List view with star ratings and quote icons.
+
+### Managing Testimonials
+
+Add and manage testimonials at **Admin → CMS → Testimonials**.
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `display` | `slider` | Layout mode: `slider` or `list` |
+| `max` | `6` | Maximum number of testimonials to show |
+| `cols` | `3` | Columns in list mode: `1`, `2`, `3`, or `4` |
+| `quote_icon` | `quote-left` | Quote icon style: `quote-left` or `none` |
+| `header` | `"What Our Customers Say"` | Section heading |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
+
+### Examples
+
+```text
+[plugin:testimonials-2026]
+[plugin:testimonials-2026 display=list cols=2 max=4 header="Reviews"]
+[plugin:testimonials-2026 display=slider max=8 quote_icon=none]
+```
+
+---
+
+## Social Media Icons Plugin
+
+**Shortcode:** `[plugin:social-icons-2026]`
+
+Renders social media profile links using Font Awesome 6 icons. Profile URLs are configured globally in the plugin settings panel.
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `align` | `left` | Icon row alignment: `left`, `center`, or `right` |
+| `size` | `md` | Icon size: `sm`, `md`, or `lg` |
+| `font_awesome` | `on` | Load Font Awesome 6 CDN (`on` / `off`) |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
+
+### Admin Settings
+
+Access from **Admin → Plugin Manager → Social Media Icons → Settings**:
+
+| Setting | Description |
+| --- | --- |
+| **Icon Style** | Shape: `non-circle` (default) or `circle` |
+| **Alignment** | Default row alignment |
+| **Icon Size** | Default size |
+| **Font-Awesome CDN** | Toggle CDN inclusion |
+| **Header / Footer / General Icon Color** | Per-context color overrides |
+| **Phone Number** | Phone link (optional) |
+| **Email Address** | Email link (optional) |
+| **Facebook / X / Instagram / YouTube URLs** | Individual social profile URLs |
+
+### Examples
+
+```text
+[plugin:social-icons-2026]
+[plugin:social-icons-2026 align=center size=lg]
+[plugin:social-icons-2026 align=right font_awesome=off]
+```
 
 ---
 
@@ -111,50 +289,132 @@ This page presents cross-sell items before the customer proceeds to the cart, in
 
 **Shortcode:** `[plugin:events-calendar-2026]`
 
+Interactive events calendar displaying products marked as events based on start and stop dates. Supports Month Grid, Agenda List, and Cards Grid display modes.
+
+### Setting Up Events
+
+Mark a product as an event in **Admin → Products → Edit → Advanced Settings → Event Settings**, then set the event title, location, and start/end dates.
+
 ### Parameters
 
 | Parameter | Default | Description |
 | --- | --- | --- |
-| `header` | `"Upcoming Events"` | Custom section heading |
+| `header` | `"Upcoming Events Calendar"` | Section heading |
 | `layout` | `month` | Display mode: `month`, `list`, or `grid` |
 | `max` | `50` | Maximum number of events |
 | `category` | _(blank)_ | Optional category slug filter |
-| `custom_css` | _(blank)_ | Custom CSS rules injected inline |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
 
 ### Display Modes
 
-<Tabs>
-  <Tab title="Month Grid">
-    A traditional 7-column monthly calendar with:
+**Month Grid** — A traditional 7-column monthly calendar with Prev/Next navigation and a Today button. Color-coded event pills appear on calendar days. Clicking an event pill opens a glassmorphism modal with full event details and a "Book Event Ticket" button linking to the product page.
 
-    - **Prev / Next** month navigation buttons
-    - **Today** button to jump to the current date
-    - Color-coded event pills on calendar days
+**Agenda List** — Chronological event rows showing thumbnail, label/badge, date and time, location, price, and a "Book Event" button. Clicking opens the event detail modal.
 
-    Clicking an event pill opens an interactive **glassmorphism modal** with full event details and a "Book Event Ticket" button linking to the product page.
-  </Tab>
-  <Tab title="Agenda List">
-    Chronological event rows, each displaying:
+**Cards Grid** — A responsive 3-column grid of event cards with full-width image header, badge overlay, and a call-to-action button. Clicking a card opens the event modal.
 
-    - Event image (thumbnail)
-    - Label pill (category/type badge)
-    - Date and time
-    - Location
-    - Price
-    - "Book Event" button
+### Examples
 
-    Clicking an event opens the same interactive modal.
-  </Tab>
-  <Tab title="Cards Grid">
-    A responsive 3-column grid of event cards, each with:
+```text
+[plugin:events-calendar-2026]
+[plugin:events-calendar-2026 layout=list max=10 header="Upcoming Shows"]
+[plugin:events-calendar-2026 layout=grid category="workshops"]
+```
 
-    - Full-width image header
-    - Badge overlay (category/type)
-    - Call-to-action button
+---
 
-    Clicking a card opens the event modal.
-  </Tab>
-</Tabs>
+## FAQ Accordion Plugin
+
+**Shortcode:** `[plugin:faqs-2026]`
+
+Renders frequently asked questions in an interactive Alpine.js accordion layout. FAQ content is managed at **Admin → CMS → FAQs**.
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `header` | `"Frequently Asked Questions"` | Section heading |
+| `show_header` | `1` | Show the section header (`1` / `0`) |
+| `open_first` | `0` | Open the first FAQ item automatically on load (`1` / `0`) |
+| `allow_multiple` | `0` | Allow multiple FAQ items open simultaneously (`1` / `0`) |
+| `max` | `0` | Maximum FAQs to display (`0` = show all) |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
+
+### Examples
+
+```text
+[plugin:faqs-2026]
+[plugin:faqs-2026 header="Support FAQs" open_first=1 allow_multiple=1]
+[plugin:faqs-2026 max=5 show_header=0]
+```
+
+---
+
+## Order Status Tracker Plugin
+
+**Shortcode:** `[plugin:order-tracker-2026]`
+
+Front-end order lookup widget. Customers enter an order number and email address to view their current fulfillment status and ordered items on the page without logging in.
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `header` | `"Track Your Order"` | Form header title |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
+
+### Admin Settings
+
+Access from **Admin → Plugin Manager → Order Tracker → Settings** to customize all visible form labels:
+
+| Setting | Default |
+| --- | --- |
+| Order Number Field Label | `Order Number` |
+| Email Address Field Label | `Email Address` |
+| Submit Button Text | `Track Order` |
+| Order Not Found Message | `No order found matching the provided order number and email address.` |
+| Status / Date / Total / Tracking / Items Labels | Individually customizable |
+
+### Examples
+
+```text
+[plugin:order-tracker-2026]
+[plugin:order-tracker-2026 header="Where Is My Order?"]
+```
+
+---
+
+## CMS Modal Display Plugin
+
+**Shortcode:** `[plugin:modal id=X]`
+
+Renders a CMS Modal popup by its ID. The modal must be active in **Admin → CMS → Modals**. Supports auto-open on page load, trigger selectors, cookie lifetime, and positioning.
+
+### Parameters
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `id` | _(required)_ | Numeric ID of the modal to render |
+| `custom_css` | _(blank)_ | CSS applied globally to all modals on this page |
+
+### Modal Configuration
+
+Modals are configured individually in **Admin → CMS → Modals**, where you can set:
+
+- **Title and Body Content** (rich HTML)
+- **Trigger** — auto-open on load, on button click, or by CSS selector
+- **Position** — `center`, `left`, `right`, or `bottom`
+- **Cookie Lifetime** — days before re-showing a dismissed modal
+- **Active / Inactive** status
+
+### Examples
+
+```text
+[plugin:modal id=1]
+[plugin:modal id=3]
+```
+
+Multiple modal shortcodes with different IDs can appear on the same page.
 
 ---
 
@@ -162,32 +422,27 @@ This page presents cross-sell items before the customer proceeds to the cart, in
 
 **Shortcode:** `[plugin:live-search-2026]`
 
-Searches across all of the following content types simultaneously:
-
-- **Products**
-- **CMS Pages**
-- **Knowledge Base Articles**
-- **Customer Testimonials**
+Multi-content live search input and full-page results display. Searches across **Products**, **CMS Pages**, **Knowledge Base Articles**, and **Customer Testimonials** simultaneously.
 
 ### Parameters
 
 | Parameter | Default | Description |
 | --- | --- | --- |
-| `mode` | `input` | `input` (search bar with autocomplete) or `results` (full results page) |
-| `placeholder` | `"Search products..."` | Input placeholder text |
-| `button_label` | `"Search"` | Search button text |
-| `layout` | `list` | Results layout: `list` or `grid` (results mode only) |
-| `custom_css` | _(blank)_ | Custom CSS overrides injected inline |
+| `mode` | `input` | `input` (search bar with autocomplete dropdown) or `results` (full results page) |
+| `placeholder` | `"Search products, pages, articles..."` | Input placeholder text |
+| `button_label` | `"Search"` | Search button label |
+| `layout` | `list` | Results layout in `results` mode: `list` or `grid` |
+| `custom_css` | _(blank)_ | CSS injected inline for this instance only |
 
 ### Live Search API
 
-The plugin fetches results from a built-in JSON API endpoint:
+The plugin fetches results from a built-in JSON endpoint:
 
 ```text
 GET /api/live-search-api?q={query}
 ```
 
-Response includes category badges, thumbnails, content snippets, and URLs for each result.
+Response includes category badges, thumbnails, content snippets, and URLs for each result type.
 
 ### Pre-Seeded Search Page
 
@@ -198,6 +453,135 @@ A search results page is pre-seeded at `/search` using:
 ```
 
 This page is ready to use immediately after installation with no additional configuration.
+
+### Examples
+
+```text
+[plugin:live-search-2026]
+[plugin:live-search-2026 placeholder="Search our store..." button_label="Go"]
+[plugin:live-search-2026 mode=results layout=grid]
+```
+
+---
+
+## Plugin CSS System
+
+All display plugins support a **three-tier CSS precedence model** that gives full control over styling.
+
+### How It Works
+
+Each display plugin outputs a scoped `<style>` block immediately before its HTML. CSS is layered in this order (later layers override earlier ones):
+
+| Layer | Source | Priority |
+| --- | --- | --- |
+| 1 - Default CSS | `default_css` plugin setting (read-only reference) | Lowest |
+| 2 - Custom CSS | `custom_css` plugin setting (editable in admin) | Middle |
+| 3 - Shortcode CSS | `custom_css=` parameter in the shortcode | Highest |
+
+All CSS values are minified via `CssMinifierService` before output.
+
+---
+
+### Admin - Plugin Settings Panel
+
+Navigate to **Admin → Plugin Manager** and select any display plugin. The Settings tab exposes two CSS fields:
+
+- **Default Plugin CSS (Read-Only Reference)** — the plugin's built-in base stylesheet. Informational only; cannot be edited. Copy rules from here into the Custom CSS field to customise them.
+- **Custom CSS Overrides** — a syntax-highlighted CSS code editor. Anything entered here is appended after the default CSS and will override matching rules. Changes apply **site-wide** to every instance of that plugin shortcode.
+
+---
+
+### Shortcode Parameter - `custom_css`
+
+Any individual shortcode can inject its own CSS by passing a `custom_css` parameter. This overrides **both** the default and admin custom CSS for that specific instance only.
+
+```text
+[plugin:slideshow-2026 custom_css=".slideshow-plugin-heading { font-size: 3rem; }"]
+[plugin:faqs-2026 custom_css=".faq-accordion { background: #f0f4ff; border-radius: 1rem; }"]
+[plugin:brands-2026 display=grid custom_css=".brand-logo-img { filter: none; }"]
+```
+
+The `custom_css` shortcode value completely replaces the admin-level Custom CSS for that render. The `default_css` base layer is always output first regardless.
+
+---
+
+### CSS Class Reference
+
+#### Slideshow (`slideshow-2026`)
+```css
+.slideshow-plugin-wrapper    { /* outer container */ }
+.slideshow-plugin-slide      { /* each slide */ }
+.slideshow-plugin-overlay    { /* alignment flex container */ }
+.slideshow-plugin-content    { /* text/button content box */ }
+.slideshow-plugin-heading    { /* slide title */ }
+.slideshow-plugin-subheading { /* slide subtitle */ }
+.slideshow-plugin-btn        { /* slide CTA button */ }
+```
+
+#### Live Search (`live-search-2026`)
+```css
+.live-search-2026-wrapper  { /* outer container */ }
+.live-search-form          { /* flex form row */ }
+.live-search-form input    { /* text input */ }
+.live-search-form button   { /* submit button */ }
+.live-search-results       { /* dropdown results panel */ }
+```
+
+#### Brands (`brands-2026`)
+```css
+.brands-plugin-grid         { /* grid layout container */ }
+.brands-plugin-slider-outer { /* slider outer wrapper */ }
+.brand-slide-card           { /* individual brand card */ }
+.brand-logo-img             { /* brand logo img */ }
+.brands-swiper-prev         { /* previous arrow button */ }
+.brands-swiper-next         { /* next arrow button */ }
+```
+
+#### Events Calendar (`events-calendar-2026`)
+```css
+/* Target #cal_XXXXXXXX for scoped rules, or use
+   .event-card and .cal-day-cell inside the view. */
+```
+
+#### FAQ Accordion (`faqs-2026`)
+```css
+.faq-accordion { /* outer wrapper */ }
+.faq-item      { /* individual question row */ }
+.faq-question  { /* question button / trigger */ }
+.faq-answer    { /* collapsible answer panel */ }
+```
+
+#### Testimonials (`testimonials-2026`)
+```css
+.testimonials-plugin-section { /* slider outer wrapper */ }
+.testimonials-plugin-list    { /* list layout container */ }
+.tmn-card                    { /* individual testimonial card */ }
+```
+
+#### Top-Level Categories (`categories-2026`)
+```css
+.categories-plugin-wrapper { /* outer container */ }
+.categories-plugin-card    { /* individual category link card */ }
+.category-logo-img         { /* category image */ }
+```
+
+#### CMS Modal (`modal`)
+```css
+.cms-modal-panel { /* modal panel container */ }
+/* Per-instance rules scoped to #cms-modal-outer-{id}.
+   Plugin-level custom_css applies globally to all modals. */
+```
+
+---
+
+### Implementation Details
+
+| Item | Path |
+| --- | --- |
+| Plugin PHP classes | `app/Plugins/Display/<PluginName>Plugin.php` |
+| CSS settings defined | `database/seeders/PluginSeeder.php` |
+| CSS minifier | `app/Services/CssMinifierService::minify()` |
+| Settings accessors | `$plugin->getSetting()` / `$plugin->getSettings()` |
 
 ---
 
