@@ -33,46 +33,7 @@ The Demo Store gives you a fully populated Site Store Pro installation to explor
 | Service Items | Top-level category |
 | Workshops & Seminars | Top-level category |
 
-### Products (34)
-
-<Accordion title="View Full Product List">
-  | # | Product | Type | Variants |
-  | --- | --- | --- | --- |
-  | 1 | Gold Chain Bracelet | Standard | 1 |
-  | 2 | Silver Charm Bracelet | Standard | 1 |
-  | 3 | Diamond Tennis Bracelet | Standard | 1 |
-  | 4 | Pearl Strand Bracelet | Standard | 1 |
-  | 5 | Solitaire Diamond Ring | Standard | 1 |
-  | 6 | Vintage Sapphire Ring | Standard | 1 |
-  | 7 | Gold Band Ring | Standard | 1 |
-  | 8 | Emerald Halo Ring | Standard | 1 |
-  | 9 | Silver Pendant Necklace | Standard | 1 |
-  | 10 | Diamond Lariat Necklace | Standard | 1 |
-  | 11 | Gold Choker Necklace | Standard | 1 |
-  | 12 | Pearl Drop Earrings | Standard | 1 |
-  | 13 | Diamond Stud Earrings | Standard | 1 |
-  | 14 | Gold Hoop Earrings | Standard | 1 |
-  | 15 | Classic Chronograph Watch | Standard | 1 |
-  | 16 | Luxury Dress Watch | Standard | 1 |
-  | 17 | Sport Diver Watch | Standard | 1 |
-  | 18 | Jewelry Cleaning eBOOK | Download | 1 download variant |
-  | 19 | Jewelry Repair Webinar | Download | 1 download variant |
-  | 20 | Jewelry Accessorizing Webinar | Download | 1 download variant |
-  | 21 | Digital Marketing Seminar | Event | 3 session variants |
-  | 22 | Social Media Workshop | Event | 1 event variant |
-  | 23 | Inventory Management Seminar | Event | 1 event variant |
-  | 24 | eCommerce Strategies Seminar | Event | 1 event variant |
-  | 25 | Business Processes Seminar | Event | 1 event variant |
-  | 26 | Men's T-Shirt | Apparel | 6 color variants |
-  | 27 | Women's T-Shirt | Apparel | 6 color variants |
-  | 28 | Women's Sweatshirt | Apparel | 3 color variants |
-  | 29 | Jewelry Gift Box | Standard | 1 |
-  | 30 | Jewelry Polishing Cloth | Standard | 1 |
-  | 31 | Jewelry Travel Pouch | Standard | 1 |
-  | 32 | Product Builder Example | Builder | Configurable |
-  | 33 | Donation / Make An Offer Example | Donation | Open price |
-  | 34 | Luxury Watch Box | Standard | 1 |
-</Accordion>
+### Products (27)
 
 ### Additional Demo Data
 
@@ -102,19 +63,23 @@ Beyond products, brands, and categories, the seeder also populates:
   <Card title="Cross-Selling Relationships" icon="arrow-right-arrow-left">
     **36 cross-selling relationships** are pre-configured across the product catalogue, demonstrating the "You may also like" feature on product pages.
   </Card>
+ <Card title="Home Page Slideshow" icon="arrow-right-arrow-left">
+    **SLideshow with 2 demo slides** included slideshow with sample slides.
+  </Card>
+<Card title="Sample Testimonials" icon="arrow-right-arrow-left">
+    **4 Fake Testimonials** including translations.
+  </Card>
 </CardGroup>
 
 ---
 
 ## Default Login Credentials
 
-The base database seed (run during installation) also creates these demo user accounts:
+The base database seed (run during installation) creates a single admin account:
 
 | Role | Email | Password |
 | --- | --- | --- |
 | Admin | `admin@support.local` | `SampleUser12345#` |
-| Agent / Team Member | `agent@support.local` | `SampleUser12345#` |
-| Customer | `user1@example.com` | `SampleUser12345#` |
 
 <Warning>
   These are shared demo credentials published in this documentation. **Change all default passwords before making your store publicly accessible.** Go to **Admin → Users**, edit each account, and set a strong, unique password.
@@ -137,7 +102,7 @@ The base database seed (run during installation) also creates these demo user ac
     php artisan db:seed --class=DemoStoreSeeder
     ```
 
-    The seeder will insert all 34 products, 5 brands, 10 categories, inventory records, event records, product attributes, CDN image references, and cross-selling relationships.
+    The seeder will insert all 27 products, 5 brands, 10 categories, inventory records, event records, product attributes, CDN image references, and cross-selling relationships.
   </Step>
   <Step title="Log in and Explore">
     Navigate to your Site Store Pro installation and log in with the admin credentials:
@@ -148,7 +113,6 @@ The base database seed (run during installation) also creates these demo user ac
     | Email | `admin@support.local` |
     | Password | `SampleUser12345#` |
 
-    Browse **Admin → Products**, **Admin → Orders**, and the public storefront to explore what's been loaded.
   </Step>
 </Steps>
 
@@ -157,12 +121,8 @@ The base database seed (run during installation) also creates these demo user ac
 </Note>
 
 <Tip>
-  The seeder does **not** copy any image files to your server. All product images are referenced as CDN URLs pointing to `https://d23w3zagfzgqcb.cloudfront.net/demo/`. Your store needs an internet connection for images to display, but no local storage space is consumed.
+  The seeder does **not** copy any image files to your server. All product images are referenced as CDN URLs pointing to `https://d23w3zagfzgqcb.cloudfront.net`. Your store needs an internet connection for images to display, but no local storage space is consumed.
 </Tip>
-
-<Note>
-  The Demo Store seeder only touches product-related data. It does **not** modify or create orders, user accounts, CMS pages, store settings, or any other non-product data.
-</Note>
 
 ---
 
@@ -190,14 +150,17 @@ When you are ready to go live, purge all demo data through the admin panel. No c
   <Step title="Confirm the Deletion">
     A confirmation modal will appear listing everything that will be permanently deleted:
 
-    - All 34 demo products and their variants
+    - All 27 demo products and their variants
     - All demo product images
     - All demo inventory records
     - All demo event records
     - All demo product attributes
     - All 5 demo brands
     - All 10 demo categories
-    - All 36 demo cross-selling relationships
+    - All demo cross-selling relationships
+    - sample slide show data\
+    - sample testimonials
+    - sample PDF CMS download
 
     Click **Yes, Delete All Demo Content** to proceed.
   </Step>
