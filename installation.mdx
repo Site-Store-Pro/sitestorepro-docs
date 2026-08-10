@@ -149,14 +149,12 @@ Before you begin, make sure your local environment meets the following requireme
       Payment provider credentials (API keys, webhook secrets, etc.) are configured via your `.env` file after the respective SDK is installed. Refer to the Payment Configuration guide for full setup instructions.
     </Note>
   </Step>
-  <Step title="(Optional) Install Bulk Import Support">
-    To enable bulk product imports via CSV or spreadsheet files, install the `phpoffice/phpspreadsheet` package:
+  <Step title="(Optional) Install Bulk Excel File Import Support">
+    To enable bulk product import and export via Excel spreadsheet files, install the `phpoffice/phpspreadsheet` package:
 
     ```bash
     composer require phpoffice/phpspreadsheet
     ```
-
-    Once installed, the **Bulk Import** option will become available in the Admin → Products area.
   </Step>
   <Step title="Create the Storage Symlink">
     In production (and recommended for local development too), create the public storage symlink so uploaded files are accessible via the browser:
