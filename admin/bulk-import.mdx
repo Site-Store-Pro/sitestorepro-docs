@@ -81,7 +81,7 @@ The importer automatically reads the first row of your file to detect column hea
   | Header | Description |
   | --- | --- |
   | `variant_sku` | Unique SKU for this variant row |
-  | `variant_name` | Display name for the variant |
+  | `variant_name` | Option Selection Label For Variant |
   | `variant_attributes` | Attribute string e.g. `Size:M, Color:Black` |
   | `variant_price` | Retail price override for this variant |
   | `variant_wholesale_price` | Wholesale price for this variant |
@@ -93,8 +93,8 @@ The importer automatically reads the first row of your file to detect column hea
 ## Multi-Variant Grouping & Duplicate Handling
 
 <Steps>
-  <Step title="Group Rows by Product">
-    Multiple rows that share the **same product title** or **SKU base** are automatically merged into a **single parent `Product`** record with multiple `ProductVariant` children.
+  <Step title="Group Rows by Product (Parent Product With Multiple Variants/Options)">
+    Multiple rows that share the **EXACT same product title**  are automatically merged into a **single parent `Product`**record with multiple `ProductVariant` children.
   </Step>
   <Step title="Single-Variant Fallback">
     If a row has **no variant options** defined, a **default single variant** is created automatically so every product always has at least one purchasable variant.
