@@ -61,7 +61,7 @@ Beyond products, brands, and categories, the seeder also populates:
   </Card>
 
   <Card title="Cross-Selling Relationships" icon="arrow-right-arrow-left">
-    **36 cross-selling relationships** are pre-configured across the product catalogue, demonstrating the "You may also like" feature on product pages.
+    **Cross-selling relationships** are pre-configured across the product catalogue, demonstrating the "You may also like" feature on product pages.
   </Card>
  <Card title="Home Page Slideshow" icon="arrow-right-arrow-left">
     **SLideshow with 2 demo slides** included slideshow with sample slides.
@@ -102,7 +102,7 @@ The base database seed (run during installation) creates a single admin account:
     php artisan db:seed --class=DemoStoreSeeder
     ```
 
-    The seeder will insert all 27 products, 5 brands, 10 categories, inventory records, event records, product attributes, CDN image references, and cross-selling relationships.
+    The seeder will insert all 27 products, 5 brands, 10 categories, inventory records, event records, product attributes, CDN image references, and cross-selling relationships. It will also activate cms page id #13 which is a redirect after order example page that is seeded from the base install but not active unless the demo data is present.
   </Step>
   <Step title="Log in and Explore">
     Navigate to your Site Store Pro installation and log in with the admin credentials:
@@ -158,9 +158,9 @@ When you are ready to go live, purge all demo data through the admin panel. No c
     - All 5 demo brands
     - All 10 demo categories
     - All demo cross-selling relationships
-    - sample slide show data\
+    - sample slide show data
     - sample testimonials
-    - sample PDF CMS download
+    - ++++ CMS page id 13 is disabled/hidden (not deleted) when the demo data is purged so it can be reactivated later to demonstrate using a landing page as an alternate redirect for a order (webinar sample product).
 
     Click **Yes, Delete All Demo Content** to proceed.
   </Step>
