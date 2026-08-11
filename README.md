@@ -2,7 +2,10 @@
 
 Official developer documentation for **Site Store Pro**, a Laravel-based e-commerce, CMS, and helpdesk platform.
 
-Live site: [docs.sitestorepro.com](https://docs.sitestorepro.com)
+Docs site: [docs.sitestorepro.com](https://docs.sitestorepro.com)
+
+Demo site: [demo.sitestorepro.com](https://demo.sitestorepro.com/)
+
 
 ## About Site Store Pro
 
