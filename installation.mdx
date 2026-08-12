@@ -38,7 +38,7 @@ Before you begin, make sure your local environment meets the following requireme
 
 <Steps>
   <Step title="Clone the Repository">
-    Clone the Site Store Pro repository to your local machine and navigate into the project directory:
+    Clone the Site Store Pro repository to your local machine (or online server) and navigate into the project directory:
 
     ```bash
     git clone <repository-url> laravel-ecommerce
@@ -82,9 +82,6 @@ Before you begin, make sure your local environment meets the following requireme
     DB_PASSWORD=your_db_password
     ```
 
-    <Note>
-      If you are using SQLite for local development, set `DB_CONNECTION=sqlite` and ensure a `database/database.sqlite` file exists. You can create one with `touch database/database.sqlite`.
-    </Note>
   </Step>
   <Step title="Run Database Migrations and Seed">
     Run a fresh migration and seed the database with all default data:
