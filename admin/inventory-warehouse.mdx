@@ -4,24 +4,26 @@ sidebarTitle: "Inventory"
 description: "Track stock levels across multiple warehouses, run bulk CSV imports, sync inventory via webhook API, and configure multi-location fulfillment in Site Store Pro."
 ---
 
-Site Store Pro's inventory system supports dual stock tracking per variant — separate available stock and warehouse stock values — combined into a single calculated total. You can update stock in bulk via CSV import at `/admin/ecommerce/inventory`, or push real-time updates from any external WMS or ERP using the `POST /webhooks/inventory-update` webhook API. Multi-warehouse fulfillment is managed through the Warehouse Locations panel in the Shipping Console.
+Site Store Pro's inventory system supports multi-location stock tracking per variant — combining shelf stock, primary warehouse stock, and location-dependent child warehouse inventory levels into a calculated total. You can update stock in bulk via CSV import at `/admin/ecommerce/inventory`, or push real-time updates from any external WMS or ERP using the `POST /webhooks/inventory-update` webhook API. Multi-warehouse fulfillment and facility locations are managed through the Warehouse Locations panel in the Shipping Console (`/admin/ecommerce/shipping?tab=warehouses`).
 
 ## Inventory Page
 
 The main inventory management interface is at `GET /admin/ecommerce/inventory` (paginated **25 items per page**).
 
-From this page you can view all variants' stock levels across locations, edit individual records, run bulk CSV imports, and manage warehouse locations.
+From this page you can view all variants' stock levels across locations, edit individual records, run bulk CSV imports, and navigate directly to manage warehouse locations.
 
 ---
 
 ## Warehouse Stock Calculations
 
-Site Store Pro uses a **dual stock tracking** model per variant:
+Site Store Pro uses a **multi-warehouse stock tracking** model per variant:
 
 | Value | Description |
 | --- | --- |
-| **Available Stock** | Physical shelf/pick stock under your direct control |
-| **Warehouse Stock Level** | External or remote warehouse stock tracked separately |
+| **Available Stock** | Physical shelf/pick stock under your direct control (`quantity_available`) |
+| **Main Warehouse Stock Level** | Primary external or remote warehouse stock (`warehouse_stock_level`) |
+| **Child Warehouse Stocks** | Warehouse-specific inventory levels assigned per location (`product_inventory_warehouses`) |
+| **Reserved Stock** | Quantities set aside or allocated to pending orders (`reserved_stock`) |
 
 ### Calculation Toggle
 
@@ -30,23 +32,25 @@ An admin checkbox (`use_warehouse_stock = 1`) on each inventory record controls 
 <Tabs>
   <Tab title="Toggle ON">
     ```text
-    Available Stock + Warehouse Stock - Reserved Stock = Current Inventory
+    Available Stock + Main Warehouse Stock + SUM(Child Warehouse Stocks) - Reserved Stock = Calculated Inventory Total
     ```
 
-    Both your local shelf stock and the external warehouse stock are summed, then reserved quantities are deducted.
+    Shelf stock, main warehouse stock, and all assigned child warehouse inventory levels are summed, then reserved quantities are deducted.
   </Tab>
   <Tab title="Toggle OFF">
     ```text
-    Available Stock - Reserved Stock = Current Inventory
+    Available Stock - Reserved Stock = Calculated Inventory Total
     ```
 
-    Only local shelf stock is used; warehouse stock is ignored in the calculation.
+    Only local shelf stock is used; all main and child warehouse stock levels are ignored in the calculation.
   </Tab>
 </Tabs>
 
-### Real-Time Calculator
+### Real-Time Calculator & Child Builder
 
-A **dynamic totals preview** is displayed on the inventory edit panel. As you adjust any of the three input values (`Available Stock`, `Warehouse Stock`, `Reserved Stock`), the calculated **Current Inventory** figure updates in real time — before you click Save.
+A **dynamic totals preview** is displayed on the product variant inventory edit panel. As you adjust `Available Stock`, `Main Warehouse Stock`, `Reserved Stock`, or add/modify **Warehouse Location Stock Lines**, the calculated **Total Available Calculated Stock** updates in real time — before clicking Save.
+
+A direct link to **Manage Warehouses & Fulfillment Locations** (`/admin/ecommerce/shipping?tab=warehouses`) is included directly inside the variant inventory section.
 
 ---
 
@@ -76,8 +80,8 @@ SKU-CCC-003|0|500|1
 | --- | --- | --- |
 | `SKU` | Auto-match by SKU | Matches an existing product variant by its SKU |
 | `stock_level` | `quantity_available` | Updates the available/shelf stock level |
-| `warehouse_level` | `warehouse_stock_level` | Updates the external warehouse stock level |
-| `locationid` | `location_id` | Assigns or moves the record to the specified warehouse location |
+| `warehouse_level` | `warehouse_stock_level` | Updates the main external warehouse stock level |
+| `locationid` | `location_id` | Assigns or moves the record to the specified primary warehouse location |
 
 <Note>
   The import **auto-matches by SKU**. Any row whose SKU does not match an existing variant is skipped and logged in the import report.
@@ -87,7 +91,7 @@ SKU-CCC-003|0|500|1
 
 ## Automated Inventory Webhook API
 
-For real-time inventory sync from external WMS, ERP, or fulfillment systems, Site Store Pro provides a dedicated webhook endpoint.
+For real-time inventory sync from external WMS, ERP, or fulfillment systems, Site Store Pro provides a dedicated webhook endpoint that supports both primary and location-dependent warehouse updates.
 
 ### Endpoint
 
@@ -117,42 +121,58 @@ The request must include **one** of the following credentials, all matching the 
   "stock_level": 150,
   "warehouse_level": 80,
   "use_warehouse_stock": true,
-  "location_id": 2
+  "location_id": 2,
+  "warehouse_stocks": [
+    { "warehouse_location_id": 1, "stock_level": 50 },
+    { "warehouse_location_id": 2, "stock_level": 30 }
+  ]
 }
 ```
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `sku` | string | SKU of the variant to update |
+| `sku` | string | SKU of the variant to update (Required) |
 | `stock_level` | integer | New available/shelf stock level |
-| `warehouse_level` | integer | New external warehouse stock level |
+| `warehouse_level` | integer | New main external warehouse stock level |
 | `use_warehouse_stock` | boolean | Whether to apply the warehouse stock calculation formula |
-| `location_id` | integer | Warehouse location ID for this stock record |
+| `location_id` | integer | Primary warehouse location ID |
+| `warehouse_stocks` | array | Optional array of warehouse-specific stock levels |
+| `warehouse_stocks.*.warehouse_location_id` | integer | Valid ID from `warehouse_locations` table |
+| `warehouse_stocks.*.stock_level` | integer | Assigned stock quantity for this warehouse location |
 
 ### Response
 
-A successful call returns the **JSON representation of the updated inventory record** including the newly calculated inventory total.
+A successful call returns the **JSON representation of the updated inventory record** including assigned warehouse child stocks and the newly calculated inventory total.
 
 <CodeGroup>
 
 ```json Success Response
 {
-  "id": 42,
-  "variant_id": 17,
-  "sku": "SKU-AAA-123",
-  "quantity_available": 150,
-  "warehouse_stock_level": 80,
-  "reserved_stock": 5,
-  "use_warehouse_stock": true,
-  "location_id": 2,
-  "calculated_total": 225
+  "status": "success",
+  "message": "Inventory for SKU 'SKU-AAA-123' updated successfully.",
+  "data": {
+    "id": 42,
+    "variant_id": 17,
+    "sku": "SKU-AAA-123",
+    "quantity_available": 150,
+    "warehouse_stock_level": 80,
+    "reserved_stock": 5,
+    "use_warehouse_stock": true,
+    "location_id": 2,
+    "calculated_total": 305,
+    "warehouse_stocks": [
+      { "warehouse_location_id": 1, "stock_level": 50 },
+      { "warehouse_location_id": 2, "stock_level": 30 }
+    ],
+    "updated_at": "2026-08-15T03:26:14.000000Z"
+  }
 }
 ```
 
 ```json Error Response (Unauthorized)
 {
-  "error": "Unauthorized",
-  "message": "Invalid or missing webhook token."
+  "status": "error",
+  "message": "Unauthorized: Invalid or missing webhook token."
 }
 ```
 
@@ -164,32 +184,26 @@ A successful call returns the **JSON representation of the updated inventory rec
 
 ### Database Schema
 
-The `warehouse_locations` table stores:
-
-| Column | Description |
-| --- | --- |
-| Location name | Human-readable display name (e.g. `"US East Coast - Newark"`) |
-| Unique code | Short identifier for programmatic use (e.g. `US-WH-1`) |
-| Address | Full street address for the facility |
-| State / Country codes | ISO codes used for region-based fulfillment matching |
-| Status flag | Active / inactive toggle |
-| ShipStation carrier ID | Links this location to a ShipStation carrier account for label generation |
-
-### Inventory Relationships
+The `warehouse_locations` table stores facility details, while `product_inventory_warehouses` links specific stock levels to inventory records:
 
 ```text
 ProductVariant
-  └── HasMany → ProductInventory   (one record per warehouse location)
-  └── HasOne  → inventory()        (primary location — fallback for single-location queries)
+  └── HasOne → ProductInventory (`products_inventory`)
+                 └── HasMany → ProductInventoryWarehouse (`product_inventory_warehouses`)
 ```
 
-This means a single variant SKU can carry **multiple distinct inventory records** — one per warehouse — while still exposing a simple primary-inventory accessor for backwards-compatible queries.
+| Table | Column | Description |
+| --- | --- | --- |
+| `warehouse_locations` | `id`, `name`, `code`, `address`, `state_code`, `country_code`, `is_active` | Facility metadata and regional location codes |
+| `product_inventory_warehouses` | `product_inventory_id`, `warehouse_location_id`, `stock_level` | Dependent stock levels assigned per warehouse location |
 
-### Fulfillment Origin Logic
+### Fulfillment Origin & Available Stock Resolution
 
-At checkout, Site Store Pro resolves the optimal fulfillment warehouse via:
+At checkout and storefront product views, Site Store Pro resolves available stock via:
 
 ```php
+$variant->inventory->available_stock
+// or for location-based address matching:
 $variant->getStockForFulfillment($countryCode, $stateCode)
 ```
 
@@ -197,11 +211,11 @@ $variant->getStockForFulfillment($countryCode, $stateCode)
   <Step title="Region Match">
     Checks for an **active warehouse** whose `state_code` and/or `country_code` matches the buyer's shipping address.
   </Step>
-  <Step title="Aggregate Fallback">
-    If no regional match is found, **aggregates stock across all active warehouses** to determine total available inventory.
+  <Step title="Calculated Total Fallback">
+    If no regional match is found, **sums available shelf stock, main warehouse stock, and child warehouse stock levels** (minus reserved stock) to determine total available inventory.
   </Step>
-  <Step title="Deduction">
-    At the point of order confirmation, stock is **decremented from the location closest to the customer's address** first.
+  <Step title="Order Deduction">
+    At point of order confirmation, stock is decremented from the designated warehouse location closest to the buyer.
   </Step>
 </Steps>
 
@@ -211,7 +225,7 @@ $variant->getStockForFulfillment($countryCode, $stateCode)
 
 Warehouse location management is available in the **Warehouse Locations sub-panel** inside the Shipping Console:
 
-`/admin/ecommerce/shipping`
+`/admin/ecommerce/shipping?tab=warehouses`
 
 Full **CRUD operations** are supported:
 
@@ -230,5 +244,5 @@ Full **CRUD operations** are supported:
 </CardGroup>
 
 <Warning>
-  Deleting a warehouse location that still has associated inventory records may affect stock calculations. Reassign or zero-out those inventory records before deletion.
+  Deleting a warehouse location that still has associated child inventory records will cascade and remove child inventory entries for that location. Reassign or zero-out location stock levels before deletion.
 </Warning>
