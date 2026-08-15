@@ -4,7 +4,7 @@ sidebarTitle: "Inventory"
 description: "Track stock levels across multiple warehouses, run bulk CSV imports, sync inventory via webhook API, and configure multi-location fulfillment in Site Store Pro."
 ---
 
-Site Store Pro's inventory system supports multi-location stock tracking per variant — combining shelf stock, primary warehouse stock, and location-dependent child warehouse inventory levels into a calculated total. You can update stock in bulk via CSV import at `/admin/ecommerce/inventory`, or push real-time updates from any external WMS or ERP using the `POST /webhooks/inventory-update` webhook API. Multi-warehouse fulfillment and facility locations are managed through the Warehouse Locations panel in the Shipping Console (`/admin/ecommerce/shipping?tab=warehouses`).
+Site Store Pro's inventory system supports multi-location stock tracking per variant — combining shelf stock, primary warehouse stock (tagged via a Primary Warehouse Location selector), and location-dependent child warehouse inventory levels into a calculated total. You can update stock in bulk via CSV import at `/admin/ecommerce/inventory`, or push real-time updates from any external WMS or ERP using the `POST /webhooks/inventory-update` webhook API. Multi-warehouse fulfillment and facility locations are managed through the Warehouse Locations panel in the Shipping Console (`/admin/ecommerce/shipping?tab=warehouses`).
 
 ## Inventory Page
 
@@ -14,16 +14,21 @@ From this page you can view all variants' stock levels across locations, edit in
 
 ---
 
-## Warehouse Stock Calculations
+## Warehouse Stock Calculations & Primary Location Selector
 
 Site Store Pro uses a **multi-warehouse stock tracking** model per variant:
 
-| Value | Description |
-| --- | --- |
-| **Available Stock** | Physical shelf/pick stock under your direct control (`quantity_available`) |
-| **Main Warehouse Stock Level** | Primary external or remote warehouse stock (`warehouse_stock_level`) |
-| **Child Warehouse Stocks** | Warehouse-specific inventory levels assigned per location (`product_inventory_warehouses`) |
-| **Reserved Stock** | Quantities set aside or allocated to pending orders (`reserved_stock`) |
+| Value | Field / Relation | Description |
+| --- | --- | --- |
+| **Available Stock** | `quantity_available` | Physical shelf/pick stock under your direct control |
+| **Primary Warehouse Facility** | `location_id` | Primary default warehouse facility selected for the main warehouse stock level |
+| **Main Warehouse Stock Level** | `warehouse_stock_level` | Remote/main warehouse stock quantity assigned to the primary warehouse facility |
+| **Child Warehouse Stocks** | `product_inventory_warehouses` | Warehouse-specific inventory levels assigned per additional warehouse location |
+| **Reserved Stock** | `reserved_stock` | Quantities set aside or allocated to pending orders |
+
+<Note>
+  **Mutual Exclusion Rule**: The **Primary Warehouse Facility** selector and **Child Warehouse Location** stock lines are mutually exclusive. Once a facility is assigned as Primary (`location_id`), it is excluded from selection in child warehouse lines, preventing duplicate warehouse counting.
+</Note>
 
 ### Calculation Toggle
 
@@ -158,11 +163,11 @@ A successful call returns the **JSON representation of the updated inventory rec
     "warehouse_stock_level": 80,
     "reserved_stock": 5,
     "use_warehouse_stock": true,
-    "location_id": 0,
+    "location_id": 1,
     "calculated_total": 305,
     "warehouse_stocks": [
-      { "warehouse_location_id": 1, "stock_level": 50 },
-      { "warehouse_location_id": 2, "stock_level": 30 }
+      { "warehouse_location_id": 2, "stock_level": 50 },
+      { "warehouse_location_id": 3, "stock_level": 30 }
     ],
     "updated_at": "2026-08-15T03:26:14.000000Z"
   }
