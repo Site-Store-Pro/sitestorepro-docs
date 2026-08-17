@@ -202,7 +202,7 @@ Free Trial ($0.00):                              Paid Trial ($X.XX > 0):
 * **[`app/Services/Payments/Processors/StripeProcessor.php`]**:
   * `createSubscription()`: Attaches the payment method, creates an upfront `InvoiceItem` if `trial_price > 0`, and creates the subscription with `trial_period_days`.
 
-## Extension Override
+## Stripe Payments Plugin Extension Override
 
 To customize Stripe behavior without editing the built-in class, create an extension file. The platform auto-detects it — no changes to `config/payment_processors.php` are needed.
 
