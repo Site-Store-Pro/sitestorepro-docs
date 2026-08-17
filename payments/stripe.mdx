@@ -58,6 +58,152 @@ The **Stripe Address Requirement Toggle** is found in the Processors list under 
 </Tabs>
 
 ---
+# Stripe Subscription Trial Periods & Custom Pricing Guide
+
+This document outlines the architecture, configuration, and workflows for **Stripe Subscription Trial Periods**, **Trial Pricing**, and **Custom Display Labels** in SiteStorePro.
+
+---
+
+## 1. Overview & Architecture
+
+SiteStorePro supports a flexible **dual-tier pricing model** for recurring subscription products powered by Stripe:
+
+1. **Initial Trial Period**:
+   - Configurable duration (in days, e.g., 7, 14, 30 days).
+   - Configurable upfront trial price (e.g., `$0.00` for 100% Free Trials, or a nominal fee like `$1.00` for introductory paid trials).
+   - Optional **Display Label** (e.g., `Free Trial`, `7-Day Free Trial`, or `$1 Intro Offer`) that replaces the numeric price display throughout the customer storefront.
+2. **Post-Trial Recurring Subscription**:
+   - Automatically begins when the trial period concludes on Stripe.
+   - Billed at the variant's regular **Public Price** (or wholesale/discounted price as applicable) on the chosen billing interval (monthly, yearly, or weekly).
+
+---
+
+## 2. Database Schema
+
+The `product_variants` table contains the following columns for Stripe trial management:
+
+| Column | Type | Default | Description |
+|---|---|---|---|
+| `stripe_trial_enabled` | `TINYINT` / `INT` | `0` | Toggle enabling (`1`) or disabling (`0`) the Stripe trial period. |
+| `stripe_trial_days` | `INT` | `0` | Number of days the trial remains active before recurring billing begins. |
+| `stripe_trial_price` | `DECIMAL(10,2)` | `0.00` | Upfront charge due today for the trial period (`0.00` for free trials). |
+| `stripe_trial_label` | `VARCHAR(255)` | `NULL` | Optional text label displayed in place of the numeric price across the storefront. |
+
+---
+
+## 3. Admin Configuration Guide
+
+To enable and configure a Stripe trial for a product variant:
+
+1. Navigate to **Admin &rarr; Products &rarr; Edit Product**.
+2. Select or create a **Product Variant**.
+3. Under the **Payment Processor IDs &rarr; Stripe** panel:
+   - Ensure the variant is configured as a subscription (e.g., by selecting a **Billing Interval** such as Monthly or specifying a Stripe Price ID).
+   - Toggle **Trial Period & Pricing** to **On**.
+   - Set the following fields:
+     - **Days**: Number of trial days (e.g., `14`).
+     - **Trial Price**: Amount charged today (e.g., `0.00` for free trial, or `1.00` for a $1 trial).
+     - **Display Label**: Optional custom label (e.g., `Free Trial` or `Special $1 Trial`).
+4. Click **Update Variant** or **Save Product**.
+
+### Configuration Examples
+
+* **Standard Free Trial**:
+  * *Days*: `14`
+  * *Trial Price*: `0.00`
+  * *Display Label*: `Free Trial`
+  * *Customer sees*: `Free Trial` (with notes indicating 14 days, followed by `$29.99/month`).
+
+* **Introductory Paid Trial**:
+  * *Days*: `7`
+  * *Trial Price*: `1.00`
+  * *Display Label*: `$1 Trial`
+  * *Customer sees*: `$1 Trial` (charged `$1.00` today; bills full subscription price after 7 days).
+
+* **Numeric-Only Display (No Custom Label)**:
+  * *Days*: `30`
+  * *Trial Price*: `0.00`
+  * *Display Label*: *(leave blank)*
+  * *Customer sees*: `$0.00` (with notes indicating 30 Day Trial, then recurring price).
+
+---
+
+## 4. Customer-Facing Display Behavior
+
+When `stripe_trial_enabled` is active on a variant:
+
+| Storefront Area | Behavior with Display Label (e.g. "Free Trial") | Behavior without Label (Blank) |
+|---|---|---|
+| **Product Page / Buy Box** | Displays `Free Trial` in place of the price, plus duration & post-trial recurring terms. | Displays `$0.00` (or trial price) with trial duration & post-trial recurring terms. |
+| **Catalog (Grid & List)** | Displays `Free Trial` in primary price position. | Displays `$0.00` (or trial price). |
+| **Shopping Cart Page** | Shows `Free Trial` in the unit price column with duration and recurring breakdown. | Shows `$0.00` (or trial price) with duration and recurring breakdown. |
+| **Slide-Out Cart Drawer** | Displays `Free Trial` in the item row. | Displays `$0.00` (or trial price) in the item row. |
+| **Order Review Breakdown** | Displays `Free Trial` on the item line; calculates order subtotal using trial price. | Displays `$0.00` on the item line; calculates subtotal using trial price. |
+| **Featured Items & Cross-Sells** | Displays `Free Trial` across all widget types (Grid, List, Slider). | Displays `$0.00` across all widget types (Grid, List, Slider). |
+
+---
+
+## 5. Checkout & Stripe Payment Processing Workflow
+
+```
+Customer Adds Subscription to Cart
+               │
+               ▼
+   Initial Price Calculated:
+   item_price = stripe_trial_price ($0.00 or custom)
+               │
+               ▼
+         Order Review
+   (Total due today = $0.00 + tax/shipping if any)
+               │
+               ▼
+   Customer Enters Payment Details
+   (Stripe Elements: mode='setup' or 'payment' with manual tokenization)
+               │
+               ▼
+   Frontend calls: stripe.createPaymentMethod({ elements })
+               │
+               ▼
+   Backend calls: StripeProcessor::createSubscription()
+               │
+   ┌───────────┴───────────────────────────────────────────┐
+   │                                                       │
+   ▼                                                       ▼
+Free Trial ($0.00):                              Paid Trial ($X.XX > 0):
+- No upfront fee invoice.                        - Creates upfront InvoiceItem for $X.XX.
+- Attaches PaymentMethod to Customer.            - Attaches PaymentMethod to Customer.
+- Creates Subscription with:                     - Creates Subscription with:
+  • items: [price => $public_price]                • items: [price => $public_price]
+  • trial_period_days => $trial_days               • trial_period_days => $trial_days
+  • default_payment_method => $pm_id               • default_payment_method => $pm_id
+- Initial charge: $0.00.                         - Stripe charges $X.XX upfront invoice.
+- Status: 'active' / 'trialing'.                 - Status: 'active' / 'trialing'.
+   │                                                       │
+   └───────────────────────────┬───────────────────────────┘
+                               ▼
+            Order Placed & Persisted in Database
+                               │
+                               ▼
+        After Trial Expires (Stripe Webhooks / Engine):
+        Stripe automatically bills regular Public Price on interval.
+```
+
+---
+
+## 6. Key Code Reference
+
+* **[`app/Models/ProductVariant.php`]**:
+  * `hasStripeTrial()`: Checks if the variant is a subscription with `stripe_trial_enabled` and `stripe_trial_days > 0`.
+  * `getTrialPrice()`: Returns `(float) $this->stripe_trial_price`.
+  * `hasTrialLabel()`: Returns `true` if a non-empty `stripe_trial_label` exists.
+  * `getTrialLabel()`: Returns the string label or `null`.
+  * `getSubscriptionRecurringPrice($user)`: Returns the post-trial recurring price (wholesale, sale, or public price).
+* **[`app/Services/DiscountService.php`]**:
+  * In `applyDiscountsToCart()` and `getDiscountedPriceForVariant()`: Resolves current trial price for the active cart.
+* **[`app/Livewire/OrderReview.php`]**:
+  * `preparePayment()`: Forwards `$subRecurringPrice`, `$trialPrice`, `$trialDays`, and `$trialLabel` to the payment driver.
+* **[`app/Services/Payments/Processors/StripeProcessor.php`]**:
+  * `createSubscription()`: Attaches the payment method, creates an upfront `InvoiceItem` if `trial_price > 0`, and creates the subscription with `trial_period_days`.
 
 ## Extension Override
 
