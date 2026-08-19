@@ -104,30 +104,6 @@ A focused view showing **only the tickets assigned to the currently authenticate
 
 ---
 
-## Inbound Email Webhook
-
-Staff replies and customers can respond to tickets directly by replying to notification emails — no need to log into the dashboard.
-
-**Endpoint:** `POST /webhooks/inbound-email`
-
-### How It Works
-
-Every ticket notification email is sent from a unique reply-to address in the format:
-
-```text
-reply+{token}@yourdomain.com
-```
-
-When a recipient replies to this address, the email is routed to the inbound webhook. The system:
-
-1. Extracts the `{token}` from the recipient address
-2. Verifies the token against the `tickets` table
-3. Appends the email body as a new reply on the matched ticket thread
-
-<Note>
-  The webhook route is CSRF-exempt. See the [Webhooks reference](/api/webhook-endpoints) for full authentication details.
-</Note>
-
 ## Email Notifications
 
 The system supports:
