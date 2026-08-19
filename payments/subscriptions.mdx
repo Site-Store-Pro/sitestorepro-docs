@@ -267,36 +267,32 @@ The platform supports:
 
 ## Architecture & Cancellation Mechanisms by Gateway
 
-```
-                             +--------------------------------------+
-                             �          Trigger Point               �
-                             �  - Customer Account Portal           �
-                             �  - Order Status Tracker Lookup       �
-                             �  - Admin Order Details View          �
-                             �  - Admin Subscriptions Report        �
-                             �  - Direct on Gateway Dashboard       �
-                             +--------------------------------------+
-                                                �
-                 +-------------------------------------------------------------+
-                 ?                                                             ?
-     [Local App Cancellation]                                      [Direct Dashboard Cancellation]
-                 �                                                             �
-                 ?                                                             ?
-     SubscriptionService::cancelSubscription()                     Provider Webhook Triggered
-                 �                                                             �
-   +-------------+-------------+                                 +-------------+-------------+
-   ?             ?             ?                                 ?             ?             ?
-Stripe SDK    Paddle API   PayPal API                       Stripe Webhook Paddle Webhook PayPal Webhook
-(cancel())   (/cancel)    (/cancel)                         (deleted)      (canceled)     (CANCELLED)
-   �             �             �                                 �             �             �
-   +---------------------------+                                 +---------------------------+
-                 �                                                             �
-                 +-------------------------------------------------------------+
-                                                �
-                                                ?
-                                   [Update Local Database]
-                                   order_details.active_subscription = 0
-                                   order_details.subscription_status = 'cancelled'
+```mermaid
+flowchart TD
+    Trigger["Trigger Points<br/>• Customer Account Portal<br/>• Order Status Tracker Lookup<br/>• Admin Order Details View<br/>• Admin Subscriptions Report<br/>• Direct on Gateway Dashboard"]
+
+    Trigger -->|Store Portal Action| SubService["SubscriptionService::cancelSubscription()"]
+    Trigger -->|Direct Dashboard Action| Webhooks["Provider Webhook Receiver"]
+
+    subgraph AppCancel["Direct API Cancellation"]
+        SubService --> StripeSDK["Stripe SDK<br/>(subscriptions->cancel())"]
+        SubService --> PaddleAPI["Paddle Billing API<br/>(POST /subscriptions/{id}/cancel)"]
+        SubService --> PayPalAPI["PayPal Subscriptions API<br/>(POST /v1/billing/subscriptions/{id}/cancel)"]
+    end
+
+    subgraph WebhookSync["Webhook Lifecycle Sync"]
+        Webhooks --> StripeWH["Stripe Webhook<br/>(customer.subscription.deleted)"]
+        Webhooks --> PaddleWH["Paddle Webhook<br/>(subscription.canceled)"]
+        Webhooks --> PayPalWH["PayPal Webhook<br/>(BILLING.SUBSCRIPTION.CANCELLED)"]
+    end
+
+    StripeSDK --> UpdateDB["Update Local Database<br/>• order_details.active_subscription = 0<br/>• order_details.subscription_status = 'cancelled'"]
+    PaddleAPI --> UpdateDB
+    PayPalAPI --> UpdateDB
+
+    StripeWH --> UpdateDB
+    PaddleWH --> UpdateDB
+    PayPalWH --> UpdateDB
 ```
 
 ---
