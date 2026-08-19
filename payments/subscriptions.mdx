@@ -252,26 +252,6 @@ Subscription lifecycle events are delivered via webhooks to synchronize cancella
 
 ---
 
-## 10. Code & File Inventory
-
-| Component | File Path |
-| :--- | :--- |
-| **Order Detail Model** | [`app/Models/OrderDetail.php`] |
-| **Variant Model** | [`app/Models/ProductVariant.php`] |
-| **Subscription Service** | [`app/Services/Payments/SubscriptionService.php`] |
-| **Stripe Processor** | [`app/Services/Payments/Processors/StripeProcessor.php`] |
-| **Paddle Processor** | [`app/Services/Payments/Processors/PaddleProcessor.php`] |
-| **PayPal Processor** | [`app/Services/Payments/Processors/PayPalProcessor.php`] |
-| **Stripe Webhook** | [`app/Http/Controllers/StripeWebhookController.php`] |
-| **Paddle Webhook** | [`app/Http/Controllers/PaddleWebhookController.php`] |
-| **PayPal Webhook** | [`app/Http/Controllers/PayPalWebhookController.php`]|
-| **Checkout Placement** | [`app/Livewire/OrderReview.php`] |
-| **Customer Dashboard** | [`app/Livewire/UserDashboard.php`] & [`resources/views/livewire/user-dashboard.blade.php`] |
-| **Order Lookup Plugin** | [`app/Plugins/Display/OrderStatusTrackerPlugin.php`] |
-| **Admin Order Details** | [`app/Livewire/AdminOrderDetails.php`] & [`resources/views/livewire/admin-order-details.blade.php`]|
-| **Subscriptions Report** | [`app/Livewire/ReportSubscriptions.php`] & [`resources/views/livewire/report-subscriptions.blade.php`]|
-| **Admin Reports Hub** | [`app/Livewire/AdminReports.php`] & [`resources/views/livewire/admin-reports.blade.php`]|
-| **Feature Tests** | [`tests/Feature/SubscriptionCancellationTest.php`] |
 
 # Subscription Cancellation For Stripe, Paddle and Paypal
 
@@ -412,63 +392,8 @@ Stripe SDK    Paddle API   PayPal API                       Stripe Webhook Paddl
 
 ---
 
-## Database Schema & Line Item Tracking
 
-### `order_details` Table
-
-| Column Name | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `active_subscription` | `TINYINT(1)` | `0` | `1` = Active recurring subscription; `0` = Cancelled or non-subscription item. |
-| `subscription` | `TINYINT(1)` | `0` | `1` = Item was purchased as a subscription. |
-| `subscription_provider` | `VARCHAR(50)` | `NULL` | Billing gateway provider (`stripe`, `paddle`, `paypal`). |
-| `subscription_plan_id` | `VARCHAR(191)` | `NULL` | Gateway subscription agreement ID (e.g. `I-BW452GLLEP10`, `sub_1Nv0p...`). |
-| `subscription_user_id` | `BIGINT UNSIGNED`| `NULL` | Linked customer user ID. |
-| `subscription_status` | `VARCHAR(50)` | `NULL` | Current status string (`active`, `cancelled`, `paused`). |
-
----
-
-## UI Integration & User Experience
-
-### 1. Customer Account Manager (`/account`)
-- **Controller**: `app/Livewire/UserDashboard.php`
-- **View**: `resources/views/livewire/user-dashboard.blade.php`
-- **Features**:
-  - On the Order Details view, active subscriptions display an **Active Subscription** badge with an animated pulse indicator.
-  - An inline **Cancel Subscription** button triggers a localized browser confirmation prompt.
-  - Integrated with the site label translation system:
-    - `@label('account.subscription_active', 'Active Subscription')`
-    - `@label('account.subscription_cancelled', 'Cancelled Subscription')`
-    - `@label('account.cancel_subscription', 'Cancel Subscription')`
-    - `siteLabel('account.cancel_confirm', 'Are you sure you want to cancel this recurring subscription?')`
-  - Prevents non-owners from cancelling subscriptions via strict backend ownership verification (`$orderDetail->order->order_user_id === auth()->id()`).
-
-### 2. Order Status Tracker Plugin (Guest & Customer Order Lookup)
-- **Plugin Class**: `app/Plugins/Display/OrderStatusTrackerPlugin.php`
-- **Features**:
-  - Displays subscription status badges on order tracking lookups.
-  - Provides a **Cancel Subscription** form action with order verification so customers can manage their subscriptions even from the public tracking widget.
-
-### 3. Admin Order Details (`/admin/ecommerce/orders/{id}`)
-- **Controller**: `app/Livewire/AdminOrderDetails.php`
-- **View**: `resources/views/livewire/admin-order-details.blade.php`
-- **Features**:
-  - Displays **Active Subscription** or **Cancelled Sub** badges on line items.
-  - Staff can click **Cancel Sub** to immediately revoke the agreement with the payment processor.
-
-### 4. Subscriptions & Recurring Billing Admin Report (`/admin/ecommerce/reports`)
-- **Controller**: `app/Livewire/ReportSubscriptions.php`
-- **View**: `resources/views/livewire/report-subscriptions.blade.php`
-- **Features**:
-  - **KPI Metric Cards**: Total Subscriptions, Active Subscriptions, Cancelled Subscriptions, and Active Monthly Recurring Value (MRV).
-  - **Date Range Filters**: 30 Days, 60 Days, 90 Days, 120 Days, Year-to-Date, or Custom From/To range.
-  - **Search & Filter**: Filter by status (All, Active, Cancelled) and gateway provider (All, Stripe, Paddle, PayPal), plus live search across customer name, email, order #, and subscription ID.
-  - **Past Payments Audit History**: Each row features an expandable payment history drawer that lists **all past payment transactions** recorded in `order_payments` associated with that subscription / order.
-  - **Direct Admin Actions**: Cancel subscription directly from the report table.
-  - **Data Exporting**: Instant **Export CSV** and **Export Excel (XLSX)**.
-
----
-
-## Code & File Inventory
+# Code & File Inventory
 
 | Component | File Path |
 | :--- | :--- |
