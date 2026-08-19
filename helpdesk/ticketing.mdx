@@ -128,21 +128,261 @@ When a recipient replies to this address, the email is routed to the inbound web
   The webhook route is CSRF-exempt. See the [Webhooks reference](/api/webhook-endpoints) for full authentication details.
 </Note>
 
-### Supported Email Providers
+## Email Notifications
 
-<CardGroup cols={3}>
-  <Card title="Cloudflare Email Workers" icon="cloud">
-    Route inbound mail through Cloudflare's email routing rules to forward to your webhook URL.
-  </Card>
+The system supports:
 
-  <Card title="Mailgun" icon="envelope">
-    Configure Mailgun's inbound routing to `POST` parsed email payloads to your endpoint.
-  </Card>
+- Ticket creation confirmations
+- Ticket status updates
+- New reply notifications
+- Email conversation threading
 
-  <Card title="Postmark" icon="paper-plane">
-    Use Postmark's inbound processing to forward structured JSON email bodies to the webhook.
-  </Card>
-</CardGroup>
+Closed tickets do not send status notification emails.
+
+---
+
+## Secure Ticket Links
+
+Customers can access tickets without logging in using secure token URLs.
+
+Example:
+
+```
+/tickets/view/{uuid-token}
+```
+
+These links allow customers to:
+
+- View ticket conversations
+- Reply securely
+
+---
+
+## Email Based Ticket Replies
+
+Customers can reply directly through email.
+
+Example:
+
+```
+reply+{ticket-token}@yourdomain.com
+```
+
+The system automatically:
+
+- Matches replies to tickets
+- Creates new replies
+- Maintains conversation history
+
+
+Supported providers:
+
+- Cloudflare Email Routing
+- Mailgun
+- Postmark
+
+
+---
+
+# Ticket Email Configuration
+
+Default development mode:
+
+```env
+MAIL_MAILER=log
+```
+
+Emails will be written to:
+
+```
+storage/logs
+```
+
+For production configure:
+
+- SMTP
+- Mailgun
+- Postmark
+- Other Laravel mail providers
+
+
+---
+
+# Email Reply Webhook
+
+Configure your provider to send:
+
+```
+POST /webhooks/inbound-email
+```
+
+---
+
+All providers must include a header field called: X-Webhook-Secret
+This value must be set as .env variable: INBOUND_WEBHOOK_SECRET
+
+---
+
+Supported payload formats:
+
+Generic JSON:
+
+```json
+{
+"from_email":"customer@example.com",
+"from_name":"Customer",
+"body":"Reply text"
+}
+```
+
+Mailgun:
+
+```
+recipient
+sender
+from
+body-plain
+```
+
+Postmark:
+
+```
+ToFull
+FromFull
+TextBody
+```
+
+Cloudflare
+
+```
+recipient
+raw
+```
+### Cloudflare Email Worker Setup
+
+If you are using Cloudflare Email Routing for inbound ticket replies, create an Email Worker that forwards incoming emails to the Laravel webhook endpoint.
+
+After creating the Email Worker, open the code editor and replace the worker code with the following.
+
+**Important:** Update these two values before deploying:
+
+1. Replace:
+
+```
+https://yourdomain.com/webhooks/inbound-email
+```
+
+with your actual Laravel webhook URL.
+
+If your app is installed in a subdirectory, include it:
+
+```
+https://yourdomain.com/folder-name/webhooks/inbound-email
+```
+
+2. Replace:
+
+```
+X-Webhook-Secret
+```
+
+with the same value configured in your Laravel `.env` file:
+
+```env
+INBOUND_WEBHOOK_SECRET=xxxxxx-xxxx-xxxx-xxxx-xxxxxxxx
+```
+
+Cloudflare Email Worker:
+
+```javascript
+export default {
+  async fetch(request, env, ctx) {
+    return new Response("Inbound Email Worker Running");
+  },
+
+  async email(message, env, ctx) {
+    try {
+
+      // Entire RFC822 message
+      const rawEmail = await new Response(message.raw).text();
+
+      const payload = {
+        recipient: message.to,
+        raw: rawEmail
+      };
+
+      const response = await fetch(
+        "https://yourdomain.com/webhooks/inbound-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Webhook-Secret": "xxxxxx-xxxx-xxxx-xxxx-xxxxxxxx"
+          },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (!response.ok) {
+        const text = await response.text();
+
+        console.error(
+          `Laravel returned ${response.status}: ${text}`
+        );
+
+        throw new Error(
+          `Webhook failed (${response.status})`
+        );
+      }
+
+      console.log("Inbound email successfully forwarded.");
+
+    } catch (err) {
+
+      console.error(
+        "Cloudflare Email Worker Error:",
+        err.stack || err.message
+      );
+
+      throw err;
+    }
+  }
+};
+```
+
+After saving the worker:
+
+1. Click **Deploy**
+2. Return to **Email Routing**
+3. Add the worker as the destination for your support reply domain
+4. Send a test email to verify the Laravel ticket reply is created
+---
+
+# Ticket Attachment File Upload Configuration to CDN (S3 | Cloudfront)
+
+Set `s3` as the filesystem (upload destination) in `.env`:
+
+```env
+FILESYSTEM_DISK=s3
+```
+
+Enter your S3 bucket credentials in `.env`:
+
+```env
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=
+AWS_USE_PATH_STYLE_ENDPOINT=false
+```
+
+Enter the URL to your S3 bucket or CloudFront distribution domain in `.env` under:
+
+```env
+CDN_URL=https://abc123456.cloudfront.net
+```
+
+---
 
 <Tip>
   Configure the reply-to domain in your DNS and mail provider settings to match `reply+*@yourdomain.com` so all tokenized reply addresses are routed correctly.
