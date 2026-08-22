@@ -161,7 +161,7 @@ flowchart TD
 
 ### Exemption Rules & Logic
 
-The system utilizes intelligent exemption rules implemented in [`app/Services/TwoFactorAuthService.php`](/app/Services/TwoFactorAuthService.php):
+The system utilizes intelligent exemption rules implemented in [`app/Services/TwoFactorAuthService.php`]:
 
 #### Exemption 1: Social Logins (OAuth)
 - Customers and users registered or logging in via third-party providers (**Google**, **Facebook**, **GitHub**) have already completed external multi-factor verification with their identity provider.
@@ -191,8 +191,8 @@ The system utilizes intelligent exemption rules implemented in [`app/Services/Tw
 ### 2FA Landing Form (`/verify-code`)
 
 - **Route**: `GET /verify-code` (`name: auth.verify-code`)
-- **Component**: [`app/Livewire/TwoFactorVerify.php`](/app/Livewire/TwoFactorVerify.php)
-- **View**: [`resources/views/livewire/two-factor-verify.blade.php`](/resources/views/livewire/two-factor-verify.blade.php)
+- **Component**: [`app/Livewire/TwoFactorVerify.php`]
+- **View**: [`resources/views/livewire/two-factor-verify.blade.php`]
 - **UI Elements**:
   - Contextual heading: *"Verify Your Purchase"* (Checkout) vs. *"Two-Factor Verification"* (Login).
   - Target email display showing where the code was delivered.
@@ -295,26 +295,27 @@ All user-facing strings across the 2FA system and Guest Checkout feature are 100
 ## Technical Architecture & File Reference
 
 ### Models & Services
-- [`app/Services/TwoFactorAuthService.php`](/app/Services/TwoFactorAuthService.php) — Core 2FA security service, code generator, session manager, and exemption evaluator.
-- [`app/Models/User.php`](/app/Models/User.php) — User model with `last_login_at` timestamp tracking and guest sentinel helper `isGuest()`.
-- [`app/Services/EmailTemplateService.php`](/app/Services/EmailTemplateService.php) — Dispatches multilingual 2FA email notifications.
+- [`app/Services/TwoFactorAuthService.php`] Core 2FA security service, code generator, session manager, and exemption evaluator.
+- [`app/Models/User.php`]User model with `last_login_at` timestamp tracking and guest sentinel helper `isGuest()`.
+- [`app/Services/EmailTemplateService.php`] Dispatches multilingual 2FA email notifications.
 
 ### Controllers & Livewire Components
-- [`app/Livewire/AdminSettings.php`](/app/Livewire/AdminSettings.php) — Admin settings controller managing `disable_guest_checkout`, `enable_checkout_2fa`, and `enable_login_2fa`.
-- [`app/Livewire/TwoFactorVerify.php`](/app/Livewire/TwoFactorVerify.php) — 2FA verification landing form controller.
-- [`app/Livewire/Checkout.php`](/app/Livewire/Checkout.php) — Checkout details form with dynamic password validation and 2FA challenge initiation.
-- [`app/Livewire/OrderReview.php`](/app/Livewire/OrderReview.php) — Final order review guarded against unverified 2FA challenges.
-- [`app/Livewire/Forms/LoginForm.php`](/app/Livewire/Forms/LoginForm.php) — Authentication form intercepting credentials for 2FA.
-- [`app/Http/Controllers/Auth/SocialAuthController.php`](/app/Http/Controllers/Auth/SocialAuthController.php) — OAuth social login controller with role-based post-login redirection.
+- [`app/Livewire/AdminSettings.php`] Admin settings controller managing `disable_guest_checkout`, `enable_checkout_2fa`, and `enable_login_2fa`.
+- [`app/Livewire/TwoFactorVerify.php`] 2FA verification landing form controller.
+- [`app/Livewire/Checkout.php`] Checkout details form with dynamic password validation and 2FA challenge initiation.
+- [`app/Livewire/OrderReview.php`] Final order review guarded against unverified 2FA challenges.
+- [`app/Livewire/Forms/LoginForm.php`] Authentication form intercepting credentials for 2FA.
+- [`app/Http/Controllers/Auth/SocialAuthController.php`] OAuth social login controller with role-based post-login redirection.
 
 ### Views & Templates
-- [`resources/views/livewire/admin-settings.blade.php`](/resources/views/livewire/admin-settings.blade.php) — Admin settings UI toggles for 2FA and Guest Checkout.
-- [`resources/views/livewire/two-factor-verify.blade.php`](/resources/views/livewire/two-factor-verify.blade.php) — 2FA verification form Blade view with Alpine.js countdown timer.
-- [`resources/views/livewire/checkout.blade.php`](/resources/views/livewire/checkout.blade.php) — Checkout details Blade view with dynamic password fields and labels.
-- [`resources/views/livewire/pages/auth/login.blade.php`](/resources/views/livewire/pages/auth/login.blade.php) — Sign-in form Blade view.
+- [`resources/views/livewire/admin-settings.blade.php`] Admin settings UI toggles for 2FA and Guest Checkout.
+- [`resources/views/livewire/two-factor-verify.blade.php`] 2FA verification form Blade view with Alpine.js countdown timer.
+- [`resources/views/livewire/checkout.blade.php`] Checkout details Blade view with dynamic password fields and labels.
+- [`resources/views/livewire/pages/auth/login.blade.php`] Sign-in form Blade view.
 
 ### Routing
 - [`routes/web.php`](/routes/web.php) — Registers `GET /verify-code` (`auth.verify-code`).
+
 
 
 ### Order Comments
