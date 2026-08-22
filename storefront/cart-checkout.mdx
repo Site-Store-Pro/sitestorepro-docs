@@ -98,6 +98,225 @@ The country dropdown is sorted for convenience:
 
 State or province selection is **required** for US and Canadian customers. The state/province dropdown updates dynamically based on the selected country.
 
+# Security & Checkout Authentication Documentation: 2FA & Guest Checkout Management
+
+
+- **Two-Factor Authentication (2FA)** delivers automated, one-time 6-digit verification codes via email during checkout or login when risk conditions or inactivity thresholds are met.
+- **Guest Checkout Enforcement** allows store administrators to disable anonymous purchases, ensuring every customer creates a password-protected account at checkout.
+- **Intelligent Exemptions** ensure seamless friction-free experiences for OAuth social logins (Google, Facebook, GitHub) and active returning customers.
+
+---
+
+## Administrative Controls & Configuration
+
+All security and checkout authentication toggles are managed through the administrative portal at:
+```text
+URL: /admin/settings
+Tab: General / Store Settings (Two-Factor Authentication & Checkout Sections)
+```
+
+| Setting Name | Setting Key (`cms_settings`) | Default | Description |
+|---|---|---|---|
+| **Disable Guest Checkout (Force Account Creation)** | `disable_guest_checkout` | `0` (Off) | When enabled, unauthenticated customers cannot checkout without creating a password. Password and confirmation fields become mandatory. |
+| **Enable 2FA Email Verification at Checkout** | `enable_checkout_2fa` | `0` (Off) | When enabled, non-exempt customers must verify a 6-digit email code before reaching the final order review and payment step. |
+| **Enable 2FA Email Verification on Login** | `enable_login_2fa` | `0` (Off) | When enabled, non-exempt users (including staff and admins) who haven't logged in within the last 30 days must verify a 6-digit email code to access their account. |
+
+---
+
+## Two-Factor Authentication (2FA) System
+
+### Checkout 2FA Verification Flow
+
+```mermaid
+flowchart TD
+    A[Customer on Checkout Page /checkout] --> B[Customer Clicks 'Save & Continue']
+    B --> C{2FA Enabled in Settings?}
+    C -- No --> D[Proceed to Order Review /checkout/review]
+    C -- Yes --> E{Is Customer Exempt?}
+    E -- Yes (Social Login or Ordered <= 30 Days) --> D
+    E -- No --> F[Generate 6-Digit Code & Send Email]
+    F --> G[Redirect to /verify-code?context=checkout]
+    G --> H{Code Verified Correctly?}
+    H -- No --> I[Display Validation Error / Cooldown Resend Option]
+    H -- Yes --> J[Mark Session Verified & Update last_login_at]
+    J --> D
+```
+
+1. **Trigger**: Fired when a customer submits their checkout details in `Checkout::saveDetailsAndContinue()` or when an authenticated customer with a complete profile bypasses Step 1 (`Checkout::canBypassCheckout()`).
+2. **Challenge Creation**: The system generates a cryptographically secure 6-digit numeric code, records the timestamp, stores challenge state in session, and sends the template-driven verification email.
+3. **Redirection**: Customer is redirected to `/verify-code?context=checkout`.
+4. **Order Protection**: Direct URL navigation to `/checkout/review` is blocked by a guard in `OrderReview::mount()` until the 2FA challenge is verified.
+
+---
+
+### Login 2FA Verification Flow
+
+1. **Trigger**: When a user submits credentials on `/login`.
+2. **Credential Validation**: `LoginForm::authenticate()` verifies the email and password hash without establishing an authenticated session.
+3. **Exemption Evaluation**: The system evaluates if the user has an active OAuth social link or has logged in within the past 30 days.
+4. **Challenge Dispatch**: If 2FA is required, the session receives the challenge metadata, an email is dispatched, and the user is redirected to `/verify-code?context=login`.
+5. **Completion**: Upon entering the correct 6-digit code, the user is authenticated via `Auth::login()`, their `last_login_at` timestamp is updated to `now()`, and they are routed to their designated dashboard.
+
+---
+
+### Exemption Rules & Logic
+
+The system utilizes intelligent exemption rules implemented in [`app/Services/TwoFactorAuthService.php`](/app/Services/TwoFactorAuthService.php):
+
+#### Exemption 1: Social Logins (OAuth)
+- Customers and users registered or logging in via third-party providers (**Google**, **Facebook**, **GitHub**) have already completed external multi-factor verification with their identity provider.
+- **Rule**: If `$user->provider` is present, the user is **100% exempt** from both checkout and login 2FA challenges.
+
+#### Exemption 2: Active Returning Customers (Checkout)
+- Customers who have placed an order in your store within the last **30 days** are recognized as trusted returning buyers.
+- **Rule**: If the customer's account has an order where `order_date >= now()->subDays(30)`, checkout 2FA is bypassed.
+- New customers or customers whose last order was > 30 days ago receive the verification code.
+
+#### Exemption 3: Active Returning Users & Staff (Login)
+- Users and administrators who have logged into the site within the last **30 days** bypass login 2FA.
+- **Rule**: Evaluated against `users.last_login_at`. If `last_login_at >= now()->subDays(30)`, the user logs in directly.
+- If `last_login_at` is `null` (first login) or older than 30 days, 2FA code entry is required.
+
+---
+
+### Verification Code Security & Expiry
+
+- **Code Format**: 6-digit random numeric string (`100000` to `999999`).
+- **Code Lifespan**: **15 minutes** (`CODE_EXPIRY_MINUTES = 15`). Expired codes are rejected with a clear error prompt to request a new code.
+- **Resend Cooldown Protection**: **45 seconds** (`RESEND_COOLDOWN_SECONDS = 45`). Prevents email spam and rate-limit abuse.
+- **Live UI Countdown**: The landing form displays an interactive JavaScript countdown timer (`Resend code in 42s`) using Alpine.js. The resend button is disabled until the cooldown reaches zero.
+
+---
+
+### 2FA Landing Form (`/verify-code`)
+
+- **Route**: `GET /verify-code` (`name: auth.verify-code`)
+- **Component**: [`app/Livewire/TwoFactorVerify.php`](/app/Livewire/TwoFactorVerify.php)
+- **View**: [`resources/views/livewire/two-factor-verify.blade.php`](/resources/views/livewire/two-factor-verify.blade.php)
+- **UI Elements**:
+  - Contextual heading: *"Verify Your Purchase"* (Checkout) vs. *"Two-Factor Verification"* (Login).
+  - Target email display showing where the code was delivered.
+  - Large tracking 6-digit numeric input with auto-focus and mobile numeric keypad support (`inputmode="numeric"`).
+  - Dynamic loading spinners on submit and resend actions.
+  - Return links: *"← Return to Checkout"* or *"← Back to Sign In"*.
+
+---
+
+### 2FA Email Template & Dynamic Tokens
+
+- **Template Type ID**: `13` (Slug: `two_factor_verification`)
+- **Manageable In**: `/admin/email-templates` and `/admin/languages/{id}/translations`
+- **Supported Variables**:
+
+| Variable Token | Description | Example Output |
+|---|---|---|
+| `{{verification_code}}` | The randomly generated 6-digit numeric verification code | `849201` |
+| `{{customer_name}}` | Customer or user display name | `Jane Doe` |
+| `{{expires_in_minutes}}` | Expiration window in minutes | `15` |
+| `{{site_name}}` | The configured site store name | `Site Store Pro` |
+
+---
+
+## Disable Guest Checkout (Force Account Creation)
+
+### Feature Behavior
+
+When `disable_guest_checkout` is enabled in `/admin/settings`:
+
+1. **Anonymous Checkout Removed**: All unauthenticated customers must provide a password to complete their purchase.
+2. **Form Presentation**:
+   - The password section header updates from *"Create a Password (Optional)"* to *"Create an Account Password \*"*.
+   - Explanatory message displays: *"An account password is required to complete your order and track your purchases."*
+   - Required indicators (`*`) are placed next to the Password and Confirm Password inputs.
+3. **Seamless Account Provisioning**:
+   - The customer account is created immediately with the hashed password.
+   - The user is automatically authenticated upon completing Step 1.
+   - All shopping cart items and historical data are linked to the newly created user ID.
+
+---
+
+### Validation & Password Requirements
+
+When guest checkout is disabled and the customer is not logged in:
+- **Field Rule**: `password` is validated as `'required|string|min:8|confirmed'`.
+- **Confirmation Match**: `password_confirmation` must match `password`.
+- **Minimum Length**: 8 characters.
+
+---
+
+### Account Creation vs. Guest Sentinel
+
+| State | Guest Checkout Enabled (`0`) | Guest Checkout Disabled (`1`) |
+|---|---|---|
+| **No Password Provided** | User record created with plain-text sentinel `[GUEST-USER]`. System prompts user to set password later via `/account/set-password`. | **Blocked by Validation**. Customer cannot proceed without entering a password. |
+| **Password Provided** | User record created with secure Bcrypt/Argon2 password hash. Account is fully registered. | User record created with secure Bcrypt/Argon2 password hash. Account is fully registered. |
+
+---
+
+## Role-Based Post-Login Redirection Behavior
+
+When a user logs in (or completes 2FA verification):
+
+1. **Customer Accounts (`role_id` = 1 [Customer], `role_id` = 2 [Wholesale])**:
+   - If there are active items in their shopping cart: Redirected directly to **`/checkout`** to complete their order.
+   - If the shopping cart is empty: Redirected to **`/dashboard`**.
+2. **Administrative & Staff Accounts (`role_id` = 3 [Admin], `role_id` = 4 [Order Processor], `role_id` = 5 [Ticket Manager])**:
+   - **Cart Override Bypassed**: Staff members are **never** redirected to checkout, even if items remain in their shopping cart.
+   - Always redirected directly to **`/dashboard`**, which forwards them to their respective administrative workspaces (`/admin/dashboard` or `/admin/tickets`).
+
+---
+
+## Multi-Language & Translation Management
+
+All user-facing strings across the 2FA system and Guest Checkout feature are 100% translatable via the Language Manager at `/admin/languages`:
+
+### Site Labels (`site_labels` table)
+
+| Label Key | Section | English Default | Spanish Translation (`es`) | French Translation (`fr`) |
+|---|---|---|---|---|
+| `checkout.field_password_required` | `checkout` | Create an Account Password | Crear una contraseña de cuenta | Créer un mot de passe de compte |
+| `checkout.field_password_required_message` | `checkout` | An account password is required to complete your order and track your purchases. | Se requiere una contraseña de cuenta para completar su pedido y realizar el seguimiento de sus compras. | Un mot de passe de compte est requis pour finaliser votre commande et suivre vos achats. |
+| `two_factor.checkout_heading` | `checkout` | Verify Your Purchase | Verifique su compra | Vérifiez votre achat |
+| `two_factor.login_heading` | `auth` | Two-Factor Verification | Verificación de dos factores | Vérification à deux facteurs |
+| `two_factor.subheading` | `auth` | We sent a 6-digit security verification code to | Enviamos un código de verificación de seguridad de 6 dígitos a | Nous avons envoyé un code de vérification de sécurité à 6 chiffres à |
+| `two_factor.code_label` | `auth` | Enter 6-Digit Code | Ingrese el código de 6 dígitos | Entrez le code à 6 chiffres |
+| `two_factor.continue_checkout_btn` | `checkout` | Verify & Continue to Payment → | Verificar y continuar al pago → | Vérifier et continuer vers le paiement → |
+| `two_factor.verify_login_btn` | `auth` | Verify & Sign In → | Verificar e iniciar sesión → | Vérifier et se connecter → |
+| `two_factor.verifying` | `auth` | Verifying code… | Verificando código… | Vérification du code… |
+| `two_factor.did_not_receive` | `auth` | Didn't receive the code? | ¿No recibió el código? | Vous n'avez pas reçu le code ? |
+| `two_factor.resend_in` | `auth` | Resend code in | Reenviar código en | Renvoyer le code dans |
+| `two_factor.resend_button` | `auth` | Click here to resend code | Haga clic aquí para reenviar el código | Cliquez ici pour renvoyer le code |
+| `two_factor.sending_code` | `auth` | Sending new code… | Enviando nuevo código… | Envoi du nouveau code… |
+| `two_factor.return_to_checkout` | `checkout` | Return to Checkout | Volver a finalizar compra | Retour à la commande |
+| `two_factor.return_to_login` | `auth` | Back to Sign In | Volver a iniciar sesión | Retour à la connexion |
+
+---
+
+## Technical Architecture & File Reference
+
+### Models & Services
+- [`app/Services/TwoFactorAuthService.php`](/app/Services/TwoFactorAuthService.php) — Core 2FA security service, code generator, session manager, and exemption evaluator.
+- [`app/Models/User.php`](/app/Models/User.php) — User model with `last_login_at` timestamp tracking and guest sentinel helper `isGuest()`.
+- [`app/Services/EmailTemplateService.php`](/app/Services/EmailTemplateService.php) — Dispatches multilingual 2FA email notifications.
+
+### Controllers & Livewire Components
+- [`app/Livewire/AdminSettings.php`](/app/Livewire/AdminSettings.php) — Admin settings controller managing `disable_guest_checkout`, `enable_checkout_2fa`, and `enable_login_2fa`.
+- [`app/Livewire/TwoFactorVerify.php`](/app/Livewire/TwoFactorVerify.php) — 2FA verification landing form controller.
+- [`app/Livewire/Checkout.php`](/app/Livewire/Checkout.php) — Checkout details form with dynamic password validation and 2FA challenge initiation.
+- [`app/Livewire/OrderReview.php`](/app/Livewire/OrderReview.php) — Final order review guarded against unverified 2FA challenges.
+- [`app/Livewire/Forms/LoginForm.php`](/app/Livewire/Forms/LoginForm.php) — Authentication form intercepting credentials for 2FA.
+- [`app/Http/Controllers/Auth/SocialAuthController.php`](/app/Http/Controllers/Auth/SocialAuthController.php) — OAuth social login controller with role-based post-login redirection.
+
+### Views & Templates
+- [`resources/views/livewire/admin-settings.blade.php`](/resources/views/livewire/admin-settings.blade.php) — Admin settings UI toggles for 2FA and Guest Checkout.
+- [`resources/views/livewire/two-factor-verify.blade.php`](/resources/views/livewire/two-factor-verify.blade.php) — 2FA verification form Blade view with Alpine.js countdown timer.
+- [`resources/views/livewire/checkout.blade.php`](/resources/views/livewire/checkout.blade.php) — Checkout details Blade view with dynamic password fields and labels.
+- [`resources/views/livewire/pages/auth/login.blade.php`](/resources/views/livewire/pages/auth/login.blade.php) — Sign-in form Blade view.
+
+### Routing
+- [`routes/web.php`](/routes/web.php) — Registers `GET /verify-code` (`auth.verify-code`).
+
+
 ### Order Comments
 
 If the **Order Comments** feature is enabled globally (Admin → Settings), customers can include a free-text note with their order during checkout. This note is stored with the order and visible to the admin in the order management view.
@@ -208,18 +427,18 @@ After a successful payment, customers are sent to the order confirmation page. T
 
 ```mermaid
 flowchart TD
-    A[Add to Cart] --> B{Cart empty?}
-    B -- Yes --> C[Redirect to /]
-    B -- No --> D[GET /checkout]
-    D --> E{Returning customer\nwith complete profile?}
-    E -- Yes --> G[GET /checkout/review]
-    E -- No --> F[Enter details / Login]
+    A["Add to Cart"] --> B{"Cart empty?"}
+    B -- Yes --> C["Redirect to /"]
+    B -- No --> D["GET /checkout"]
+    D --> E{"Returning customer<br/>with complete profile?"}
+    E -- Yes --> G["GET /checkout/review"]
+    E -- No --> F["Enter details / Login"]
     F --> G
-    G --> H[Select shipping\nApply coupon\nEnter payment]
-    H --> I[Place Order]
-    I --> J{completion_redirect\nset on product?}
-    J -- Yes --> K[Redirect to custom URL]
-    J -- No --> L[GET /checkout/success/{external_id}]
+    G --> H["Select shipping<br/>Apply coupon<br/>Enter payment"]
+    H --> I["Place Order"]
+    I --> J{"completion_redirect<br/>set on product?"}
+    J -- Yes --> K["Redirect to custom URL"]
+    J -- No --> L["GET /checkout/success/{external_id}"]
 ```
 
 ---
