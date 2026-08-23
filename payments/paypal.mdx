@@ -27,10 +27,12 @@ At checkout, the official **PayPal JS SDK** renders Smart Payment Buttons inline
 # Production
 PAYPAL_CLIENT_ID=your_live_client_id
 PAYPAL_CLIENT_SECRET=your_live_client_secret
+PAYPAL_WEBHOOK_ID=your_live_webhook_id
 
 # Sandbox / Test
 PAYPAL_SANDBOX_CLIENT_ID=your_sandbox_client_id
 PAYPAL_SANDBOX_CLIENT_SECRET=your_sandbox_client_secret
+PAYPAL_SANDBOX_WEBHOOK_ID=your_sandbox_webhook_id
 ```
 
 <Info>
@@ -96,14 +98,55 @@ The platform auto-detects this file on boot — no changes to `config/payment_pr
 
 ---
 
-## Related
+**Note on Webhook IDs:** Unlike Stripe or Paddle, PayPal does not use a shared secret hash for webhooks. Instead, PayPal generates a unique **Webhook ID** (e.g. `4JH27391KJ109283K`) when you register the webhook URL. This ID is passed to PayPal's REST API (`/v1/notifications/verify-webhook-signature`) to verify cryptographic authenticity.
 
-<CardGroup cols={2}>
-  <Card title="Payment Overview" icon="credit-card" href="/payments/overview">
-    Understand processor selection, randomize mode, and the two-step checkout flow.
-  </Card>
+---
 
-  <Card title="Webhooks Reference" icon="webhook" href="/payments/webhooks">
-    Full webhook endpoint reference and custom gateway setup instructions.
-  </Card>
-</CardGroup>
+## Webhook Configuration
+
+### Webhook Endpoint URL
+Register this URL in the [PayPal Developer Dashboard](https://developer.paypal.com/dashboard/) under your REST App (**Webhooks &rarr; Add Webhook**):
+
+```
+https://yourdomain.com/webhooks/paypal
+```
+
+* **Route:** `POST /webhooks/paypal` (defined in `routes/web.php`)
+* **CSRF Exemption:** Automatically exempted via `webhooks/*` in `bootstrap/app.php`.
+
+### Recommended Events to Subscribe
+Select the following event types in your PayPal webhook setup:
+
+| Event Type | Description / Action Taken |
+| :--- | :--- |
+| `PAYMENT.CAPTURE.COMPLETED` | Confirms one-time order payments and marks order status as active. |
+| `PAYMENT.SALE.COMPLETED` | Records initial and recurring subscription billing payments in `order_payments`. |
+| `BILLING.SUBSCRIPTION.ACTIVATED` | Activates recurring subscriptions and activates the associated order. |
+| `BILLING.SUBSCRIPTION.CREATED` | Logs and validates initial subscription creation. |
+| `BILLING.SUBSCRIPTION.CANCELLED` | Logs cancellation and updates subscription record status. |
+| `BILLING.SUBSCRIPTION.SUSPENDED` | Logs suspension and flags subscription status. |
+| `BILLING.SUBSCRIPTION.EXPIRED` | Logs subscription expiration. |
+| `CHECKOUT.ORDER.APPROVED` | Fallback notification for approved checkout orders. |
+
+---
+
+## Webhook  Key Components & Architecture
+
+1. **`app/Http/Controllers/PayPalWebhookController.php`**
+   - Receives incoming POST payloads from PayPal.
+   - Detects active processor environment (Sandbox vs. Production).
+   - Validates webhook transmission signatures against PayPal REST API when `PAYPAL_WEBHOOK_ID` or `PAYPAL_SANDBOX_WEBHOOK_ID` is set.
+   - Dispatches events to their respective handlers (`handleSubscriptionActivated`, `handleSaleCompleted`, `handleCaptureCompleted`, etc.).
+
+2. **`app/Services/Payments/Processors/PayPalProcessor.php`**
+   - Default built-in payment processor driver (`processor_id = 3`).
+   - Manages PayPal authentication, order capture, subscription creation/cancellation, catalog products, and billing plans.
+   - Exposes public helper methods `getAccessToken()` and `getBaseUrl()` for API calls.
+
+3. **`config/services.php`**
+   - Configures the `paypal` array with client credentials and webhook IDs mapped from `.env`.
+
+4. **`routes/web.php`**
+   - Registers named route `webhooks.paypal`.
+
+---
