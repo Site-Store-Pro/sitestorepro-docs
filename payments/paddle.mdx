@@ -87,6 +87,12 @@ Site Store Pro automatically decides whether to use a pre-configured Paddle Pric
     ```text
     https://yourdomain.com/webhooks/paddle
     ```
+### How to get the Webhook Secret Key:
+1. In the Paddle Dashboard, go to **Developer Tools &rarr; Notifications (Webhooks)**.
+2. Click on ... Edit Destination
+3. Look for the section labeled **Secret key**\
+4. Click the eye icon / **Copy secret** button.
+5. The key will start with `pdl_ntf_set_` or `pdl_ntf_`. Paste **that** into your `.env`.
   </Step>
   <Step title="Set the webhook secret in .env">
     ```ini
